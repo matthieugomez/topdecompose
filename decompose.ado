@@ -1,7 +1,9 @@
 cap program drop decompose
 
-program define decompose
+program define decompose, sortpreserve
 	syntax varlist(max=1 numeric), top(varname) 
+
+
 
 	local w `varlist'
 	di "`w'"
@@ -52,11 +54,6 @@ program define decompose
 	merge m:1 `time' using `temp_agg', keep(master matched) nogen
 	cap assert (`top' == 1) | (`w' == .) | (`w' <= `q')
 	if _rc{
-		br if !((`top' == 1) | (`w' == .) | (`w' <= `q'))
-		gen q = `q'
-		br if !((top == 1) | (w == .) | (w <= q))
-
-		x
 		di as error "Some individuals outside the top have a value for `w' higher than the minimum value in the top percentile"
 		exit 198
 	}
@@ -137,8 +134,7 @@ program define decompose
 	tempfile temp_popgrowth
 	save `temp_popgrowth'
 
-
-	* total between
+	* Put everything together
 	use `temp_total'
 	merge 1:1 `time' using `temp_within', nogen
 	merge 1:1 `time' using `temp_inflow', nogen
@@ -149,9 +145,11 @@ program define decompose
 	drop if `time' == `timemin' - 1
 	drop if `time' == `timemax'
 
-	di "Check sum to 1"
-	gen temp = abs(total - (within + inflow + outflow + birth + death + popgrowth))
-	sum temp
-	assert r(max) < 1e-6
-	drop temp
+
+	* Check sum to 1
+	cap assert abs(total - (within + inflow + outflow + birth + death + popgrowth)) < 1e-6
+	if _rc{
+		di as error "Terms do not sum to the growth of the average wealth in the top percentile. Please file an issue at https://github.com/matthieugomez/Decomposing-the-growth-of-top-wealth-shares"
+		exit 198
+	}
 end

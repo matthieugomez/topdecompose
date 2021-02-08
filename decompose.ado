@@ -4,9 +4,9 @@ program define decompose, sortpreserve
 	syntax varlist(max=1 numeric), top(varname) 
 
 
-	/***************************************************************************************************
-	Check Inputs
-	***************************************************************************************************/
+	***************************************************************************************************
+	*Check Inputs
+	***************************************************************************************************
 
 	* top has to be 0 or 1
 	cap assert `top' == 0 | `top' == 1
@@ -26,13 +26,13 @@ program define decompose, sortpreserve
 	local id `r(panelvar)'
 	local time  `r(timevar)'
 
-	/***************************************************************************************************
-	Do decomposition
-	***************************************************************************************************/
-	tempvar wbar wbar_l q q_f N N_f
+	***************************************************************************************************
+	*Do decomposition
+	***************************************************************************************************
 	tempfile temp
 	save `temp'
 
+	tempvar wbar wbar_l q q_f N N_f weight within sE rE sX rX rB sB sD rD rP sP
 	keep if `top' == 1
 	gen `N' = 1
 	collapse (mean) `wbar' = `varlist' (min) `q' = `varlist' (sum) `N' , by(`time')
@@ -59,24 +59,22 @@ program define decompose, sortpreserve
 	use `temp_agg'
 	gen total = (F.`wbar'-`wbar') / `wbar'
 	keep `time' total
-	drop if `time' == `timemax'
 	tempfile temp_total
 	save `temp_total'
 
 	* within between t and t+1
 	use `temp', clear
-	gen weight = `varlist' * (`top' == 1) * (F.`top' != .)
-	gen within = F.`varlist' / `varlist' - 1
-	collapse (mean) within  [w = weight], by(`time')
-	drop if `time' == `timemax'
+	gen `weight' = `varlist' * (`top' == 1) * (F.`top' != .)
+	gen `within' = F.`varlist' / `varlist' - 1
+	collapse (mean) withinb = `within'  [w = weight], by(`time')
 	tempfile temp_within
 	save `temp_within'
 
 	* inflow between t-1 and t
 	use `temp', clear
-	gen sE = (`top' == 1) * (L.`top' == 0)  / `N'
-	gen rE = (`varlist' - `q') / `wbar_l' if sE
-	collapse (sum) sE (mean) rE, by(`time')
+	gen `sE' = (`top' == 1) * (L.`top' == 0)  / `N'
+	gen `rE' = (`varlist' - `q') / `wbar_l' if `sE'
+	collapse (sum) sE = `sE' (mean) rE =`rE', by(`time')
 	gen inflow = rE * sE
 	replace inflow = 0 if sE == 0
 	order inflow
@@ -86,9 +84,9 @@ program define decompose, sortpreserve
 
 	* birth between t-1 and t
 	use `temp', clear
-	gen sB = (`top' == 1) * (L.`top' == .)  / `N'
-	gen rB = (`varlist' - `q') / `wbar_l' if sB
-	collapse (sum) sB  (mean) rB, by(`time')
+	gen `sB' = (`top' == 1) * (L.`top' == .)  / `N'
+	gen `rB' = (`varlist' - `q') / `wbar_l' if `sB'
+	collapse (sum) sB = `sB'  (mean) rB = `rB', by(`time')
 	gen birth = rB * sB
 	replace birth = 0 if sB == 0
 	order birth
@@ -98,9 +96,9 @@ program define decompose, sortpreserve
 
 	* outflow between t and t+1
 	use `temp', clear
-	gen sX = (`top' == 1) * (F.`top' == 0)  / `N_f'
-	gen rX = (`q_f' - F.`varlist') / `wbar' if sX
-	collapse (sum) sX (mean) rX, by(`time')
+	gen `sX' = (`top' == 1) * (F.`top' == 0)  / `N_f'
+	gen `rX' = (`q_f' - F.`varlist') / `wbar' if `sX'
+	collapse (sum) sX = `sX' (mean) rX = `rX', by(`time')
 	gen outflow = sX * rX
 	order outflow
 	tempfile temp_outflow
@@ -110,9 +108,9 @@ program define decompose, sortpreserve
 	use `temp', clear
 	merge m:1 `time' using `temp_within', keep(master matched) nogen
 	tsset `id' `time'
-	gen sD = (`top' == 1) * (F.`top' == .) / `N_f'
-	gen rD = (`q_f' - `varlist' * (1 + within)) / `wbar' if sD
-	collapse (sum) sD (mean) rD, by(`time')
+	gen `sD' = (`top' == 1) * (F.`top' == .) / `N_f'
+	gen `rD' = (`q_f' - `varlist' * (1 + within)) / `wbar' if `sD'
+	collapse (sum) sD = `sD' (mean) rD = `rD', by(`time')
 	gen death = sD * rD
 	replace death = 0 if sD == 0
 	order death
@@ -130,9 +128,9 @@ program define decompose, sortpreserve
 	save `temp_popgrowth'
 
 
-	/***************************************************************************************************
-	Put everything together
-	***************************************************************************************************/
+	***************************************************************************************************
+	*Put everything together
+	***************************************************************************************************
 
 	use `temp_total'
 	merge 1:1 `time' using `temp_within', nogen

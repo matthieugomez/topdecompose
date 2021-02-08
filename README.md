@@ -1,19 +1,17 @@
-This package provides the code to decompose the growth of an average wealth in a top wealth percentile, following
-
-Matthieu Gomez "Decomposing the Growth of Top Wealth Shares". Working Paper
-
-
-The command `decompose` can be used to decompose the growth of the average wealth in a top wealth percentile into a within term, a displacement term, and a demography term, following the decomposition in the paper.
+This package provides a command to decompose the growth of an average wealth in a top wealth percentile into a within term, a displacement term, and a demography term.
 
 The syntax is
 ```
 decompose [varname], top(indicatorvariable)
 ```
-
 where 
 - `varname` is the variable to decompose
 - `indicatorvariable` is a dummy variable indicating whether the observation belongs to the top percentile.
 
+
+# References
+
+Matthieu Gomez *Decomposing the Growth of Top Wealth Shares*. Working Paper
 
 # Installation
 

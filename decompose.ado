@@ -8,14 +8,12 @@ program define decompose, sortpreserve
 	*Check Inputs
 	***************************************************************************************************
 
-	* top has to be 0 or 1
 	cap assert `top' == 0 | `top' == 1
 	if _rc{
 		di as error "The dummy variable `top', indicating whether an individual is in the top percentile, must only take values 0 and 1. If the individual is not in the economy at time t, drop the corresponding observation"
 		exit 198
 	}
 
-	* w is allowed to be missing only for individuals that enter the top
 	cap assert (`varlist' != .) | ((L.`top' != 1) & (L.`top' != 1))
 	if _rc{
 		di as error "Missing values for `varlist' are only allowed if the individual is neither in the top percentile this period or in the previous period."
@@ -32,7 +30,10 @@ program define decompose, sortpreserve
 	tempfile temp
 	save `temp'
 
+
 	tempvar wbar wbar_l q q_f N N_f weight within sE rE sX rX rB sB sD rD rP sP
+
+	* Create aggregate variables
 	keep if `top' == 1
 	gen `N' = 1
 	collapse (mean) `wbar' = `varlist' (min) `q' = `varlist' (sum) `N' , by(`time')
@@ -45,7 +46,6 @@ program define decompose, sortpreserve
 
 	use `temp', clear
 	merge m:1 `time' using `temp_agg', keep(master matched) nogen
-
 	* check individuals outside the top have wealth lower than individuals inside the top
 	cap assert (`top' == 1) | (`varlist' == .) | (`varlist' <= `q')
 	if _rc{
@@ -66,7 +66,7 @@ program define decompose, sortpreserve
 	use `temp', clear
 	gen `weight' = `varlist' * (`top' == 1) * (F.`top' != .)
 	gen `within' = F.`varlist' / `varlist' - 1
-	collapse (mean) withinb = `within'  [w = weight], by(`time')
+	collapse (mean) withinb = `within'  [w = `weight'], by(`time')
 	tempfile temp_within
 	save `temp_within'
 
@@ -127,7 +127,6 @@ program define decompose, sortpreserve
 	tempfile temp_popgrowth
 	save `temp_popgrowth'
 
-
 	***************************************************************************************************
 	*Put everything together
 	***************************************************************************************************
@@ -140,7 +139,7 @@ program define decompose, sortpreserve
 	merge 1:1 `time' using `temp_popgrowth', nogen
 	merge 1:1 `time' using `temp_birth', nogen
 	
-	* remove first and last time
+	* Remove first and last time
 	sum `time'
 	drop if inlist(`time', r(min), r(max))
 

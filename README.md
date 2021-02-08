@@ -2,12 +2,11 @@ This package provides a command to decompose the growth of an average wealth in 
 
 The syntax is
 ```
-decompose [varname], top(indicatorvariable)
+decompose [varname] [, top(indicatorvariable)]
 ```
 where 
 - `varname` is the variable to decompose
-- `indicatorvariable` is a dummy variable indicating whether the observation belongs to the top percentile.
-
+- `indicatorvariable` is a dummy variable indicating whether the observation belongs to the top percentile. When not specified, the decomposition is done for the top 100%.
 
 # References
 

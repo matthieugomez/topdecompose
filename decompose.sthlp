@@ -11,7 +11,7 @@
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
-{p2col :{cmd:decompose} {hline 2}}Decomposing the Growth of the Average Wealth in a Top Wealth Percentile{p_end}
+{p2col :{cmd:decompose} {hline 2}}Decomposing the Growth of the Average Wealth in a Top Percentile{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
@@ -19,16 +19,17 @@
 
 
 {p 8 15 2} {cmd:decompose}
-{varname} 
-{cmd:,} 
-{opth top(indicatorvariable)} 
+{varname}
+[
+{cmd:,}
+{opth top(indicatorvar)}] 
 {p_end}
 
 {marker description}{...}
 {title:Description}
 
 {pstd}
-The command decomposes the growth of an average variable ({varname}) in a top percentile over time. It returns a within term, a displacement term, and a demography term. The original dataset must be in a panel form.
+The command decomposes the growth of an average variable ({varname}) in a top percentile (indicated by {it:indicatorvar}) over time. It returns a within, inflow, outflow, birth, death, and population growth terms. The original dataset must be in a panel form.
 
 
 
@@ -37,7 +38,7 @@ The command decomposes the growth of an average variable ({varname}) in a top pe
 {synoptset 30 tabbed}{...}
 {synopthdr}
 {synoptline}
-{synopt :{opt top(indicatorvariable)}}  Dummy variable indicating whether the observation is in the top percentile or not. 
+{synopt :{opt top(indicatorvar)}}  Dummy variable indicating whether the observation is in the top percentile or not. When left unspecified, the decomposition is done for the top 100%.
 
 
 {marker examples}{...}

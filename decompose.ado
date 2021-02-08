@@ -1,6 +1,10 @@
 program define decompose, sortpreserve
-	syntax varlist(max=1 numeric), top(varname) 
+	syntax varlist(max=1 numeric) [, top(varname)]
 
+	if `top' == ""{
+		tempvar top
+		gen `top' = 1
+	}
 
 	***************************************************************************************************
 	*Check Inputs

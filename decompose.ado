@@ -1,5 +1,3 @@
-cap program drop decompose
-
 program define decompose, sortpreserve
 	syntax varlist(max=1 numeric), top(varname) 
 

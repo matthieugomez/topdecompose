@@ -2,16 +2,24 @@ This package provides the code to decompose the growth of an average wealth in a
 
 Matthieu Gomez "Decomposing the Growth of Top Wealth Shares". Working Paper
 
-The overall syntax is
 
-`decompose [varname], top(indicatorvariable)`
+The command `decompose` can be used to decompose the growth of the average wealth in a top wealth percentile into a within term, a displacement term, and a demography term, following the decomposition in the paper.
 
-where `varname` is the variable to decompose and `indicatorvariable` is a dummy variable indicating whether the observation belongs to the top percentile.
+The syntax is
+```
+decompose [varname], top(indicatorvariable)
+```
 
+where 
+- `varname` is the variable to decompose
+- `indicatorvariable` is a dummy variable indicating whether the observation belongs to the top percentile.
 
 
 # Installation
+
+```
 net install decompose, from("https://raw.githubusercontent.com/matthieugomez/decomposing_the_growth_of_top_wealth_shares/master/")
+```
 If you have a version of Stata < 13, you need to install it manually
 
 Click the "Download ZIP" button in the right column to download a zipfile.
@@ -19,6 +27,7 @@ Click the "Download ZIP" button in the right column to download a zipfile.
 Extract it into a folder (e.g. ~/SOMEFOLDER)
 
 Run
-
+```
 cap ado uninstall decompose
 net install decompose, from("~/SOMEFOLDER")
+```

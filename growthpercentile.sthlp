@@ -33,7 +33,7 @@ The command decomposes the growth of the average {varname} in a top percentile g
 
 {synoptset 25 tabbed}{...}
 {synoptline}
-{synopt:{opth group:indicator(strings:varname)}} Dummy variable indicating whether the observation is in the top percentile or not. When left unspecified, the decomposition is done for the top 100%. {p_end}
+{synopt:{opth top:indicator(strings:varname)}} Dummy variable indicating whether the observation is in the top percentile or not. When left unspecified, the decomposition is done for the top 100%. {p_end}
 
 {synopt:{opth save(filename)}}  Save output in an external dataset. {p_end}
 
@@ -58,7 +58,7 @@ The command decomposes the growth of the average {varname} in a top percentile g
 {phang2}{cmd:. bys year (wealth): gen top = _N -_n + 1 <= 0.5 * _N}{p_end}
 {pstd}Do the decomposition{p_end}
 {phang2}{cmd:. tsset id year}{p_end}
-{phang2}{cmd:. growthpercentile wealth, groupindicator(top) clear}{p_end}
+{phang2}{cmd:. growthpercentile wealth, topindicator(top) clear}{p_end}
 
 {marker references}{...}
 {title:References}

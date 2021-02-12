@@ -93,7 +93,8 @@ program define growthpercentile
 	qui replace `time' = `time' - 1
 	qui rename wminP1 q1
 	qui keep `time' q1
-
+	qui sum `time'
+	qui drop if `time' == r(min)
 
 	/* 4: combine everything together */
 	qui merge 1:1 `time' using `temp0', keep(master matched) nogen
@@ -116,17 +117,14 @@ program define growthpercentile
 	qui gen death = n_D / n_P1 * (q1 - (w1_P0minusD / w0_P0minusD) * w0_D) / w0_P0
 	qui gen popgrowth = (n_P1 - n_P0) / n_P1 * (q1 - (w1_P0minusD / w0_P0minusD) * w0_P0) / w0_P0
 
-	* Remove  first date
-	qui sum `time'
-	qui drop if `time' == r(min)
-
+	* test sum to total
 	cap assert abs(total - (within + inflow + outflow + birth + death + popgrowth)) < 1e-6
 	if _rc{
 		di as error "Terms do not sum to the growth of the average wealth in the top percentile. Please file an issue at https://github.com/matthieugomez/Decomposing-the-growth-of-top-wealth-shares"
 		exit 198
 	}
 
-
+	* output
 	if "`detail'" == ""{
 		qui keep `time' total within inflow outflow birth death popgrowth
 		qui order `time' total within inflow outflow birth death popgrowth
@@ -141,9 +139,6 @@ program define growthpercentile
 		qui keep `time' total within inflow outflow birth death popgrowth n_P0 w0_P0 n_E w1_E n_X w1_X n_B w1_B n_D w0_D n_P1 w1_P1
 		qui order `time' total within inflow outflow birth death popgrowth n_P0 w0_P0 n_E w1_E n_X w1_X n_B w1_B n_D w0_D n_P1 w1_P1
 	}
-
-
-
 	if "`save'" != ""{
 		qui save `save', `replace'
 		restore

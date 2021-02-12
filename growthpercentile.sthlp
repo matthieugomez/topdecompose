@@ -37,9 +37,11 @@ The command decomposes the growth of the average {varname} in a top percentile g
 
 {synopt:{opth save(filename)}}  Save output in an external dataset. {p_end}
 
-{synopt:{opt clear}}  Replace the existing dataset with the result of decomposition (Alternative to the {cmd:save} option). {p_end}
+{synopt:{opt replace}}  Overwrite the filename when using the {cmd:save} option.
 
-{synopt:{opt d:etail}}  Returns details of the decomposition, such as cardinality and average wealth within subsets of individuals. {p_end}
+{synopt:{opt clear}}  Replace the existing dataset with the result of decomposition (alternative to the {cmd:save} option). {p_end}
+
+{synopt:{opt d:etail}}  Returns the cardinality and the average wealth within subsets of individuals used for the decomposition. {p_end}
 
 
 {marker examples}{...}

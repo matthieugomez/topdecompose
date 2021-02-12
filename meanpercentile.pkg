@@ -1,14 +1,14 @@
 v 0.1
 
-d decompose. decompose the growth of top shares
+d meanpercentile. decompose the growth of top shares
 d
 d Author: Matthieu Gomez
 d
 d
-d KW: decompose
+d KW: percentile, decompose
 d
 d Requires: Stata version 11.2
 d
 d Distribution-Date: 20210101
 d
-f decompose.ado
+f meanpercentile.ado

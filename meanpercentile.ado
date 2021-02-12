@@ -1,7 +1,7 @@
-program define decompose, sortpreserve
-	syntax varlist(max=1 numeric) [, top(varname)]
+program define meanpercentile
+	syntax varlist(max=1 numeric) using/, [top(varname numeric) replace clear]
 
-	if `top' == ""{
+	if "`top'" == ""{
 		tempvar top
 		gen `top' = 1
 	}
@@ -16,9 +16,9 @@ program define decompose, sortpreserve
 		exit 198
 	}
 
-	cap assert (`varlist' != .) | ((L.`top' != 1) & (L.`top' != 1))
+	cap assert `varlist' != .  if ((`top' == 1) | (L.`top' == 1))
 	if _rc{
-		di as error "Missing values for `varlist' are only allowed if the individual is neither in the top percentile this period or in the previous period."
+		di as error "Missing values for `varlist' are not allowed if the individual is in the top today or last period."
 		exit 198
 	}
 
@@ -29,13 +29,12 @@ program define decompose, sortpreserve
 	***************************************************************************************************
 	*Do decomposition
 	***************************************************************************************************
-	tempfile temp
-	save `temp'
-
-
+	preserve
 	tempvar wbar wbar_l q q_f N N_f weight within sE rE sX rX rB sB sD rD rP sP
 
 	* Create aggregate variables
+	tempfile temp
+	save `temp'
 	keep if `top' == 1
 	gen `N' = 1
 	collapse (mean) `wbar' = `varlist' (min) `q' = `varlist' (sum) `N' , by(`time')
@@ -43,34 +42,35 @@ program define decompose, sortpreserve
 	gen `wbar_l' = L.`wbar'
 	gen `q_f' = F.`q'
 	gen `N_f' = F.`N'
-	tempfile temp_agg
-	save `temp_agg'
+	tempfile agg
+	save `agg'
 
-	use `temp', clear
-	merge m:1 `time' using `temp_agg', keep(master matched) nogen
+	use `temp'
+	merge m:1 `time' using `agg', keep(master matched) nogen
 	* check individuals outside the top have wealth lower than individuals inside the top
-	cap assert (`top' == 1) | (`varlist' == .) | (`varlist' <= `q')
+	cap assert (`top' == 1) | (`varlist' == .) | (`varlist' <= `q' + 1e-3)
 	if _rc{
 		di as error "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top percentile"
 		exit 198
 	}
 	tsset `id' `time'
+	tempfile temp
 	save `temp', replace
 
 	* total between t and t+1
-	use `temp_agg'
+	use `agg'
 	gen total = (F.`wbar'-`wbar') / `wbar'
 	keep `time' total
-	tempfile temp_total
-	save `temp_total'
+	tempfile total
+	save `total'
 
 	* within between t and t+1
 	use `temp', clear
 	gen `weight' = `varlist' * (`top' == 1) * (F.`top' != .)
 	gen `within' = F.`varlist' / `varlist' - 1
-	collapse (mean) withinb = `within'  [w = `weight'], by(`time')
-	tempfile temp_within
-	save `temp_within'
+	collapse (mean) within = `within'  [w = `weight'], by(`time')
+	tempfile within
+	save `within'
 
 	* inflow between t-1 and t
 	use `temp', clear
@@ -81,8 +81,18 @@ program define decompose, sortpreserve
 	replace inflow = 0 if sE == 0
 	order inflow
 	replace `time' = `time' - 1
-	tempfile temp_inflow
-	save `temp_inflow'
+	tempfile inflow
+	save `inflow'
+
+	* outflow between t and t+1
+	use `temp', clear
+	gen `sX' = (`top' == 1) * (F.`top' == 0)  / `N_f'
+	gen `rX' = (`q_f' - F.`varlist') / `wbar' if `sX'
+	collapse (sum) sX = `sX' (mean) rX = `rX', by(`time')
+	gen outflow = sX * rX
+	order outflow
+	tempfile outflow
+	save `outflow'
 
 	* birth between t-1 and t
 	use `temp', clear
@@ -93,22 +103,12 @@ program define decompose, sortpreserve
 	replace birth = 0 if sB == 0
 	order birth
 	replace `time' = `time' - 1
-	tempfile temp_birth
-	save `temp_birth'
-
-	* outflow between t and t+1
-	use `temp', clear
-	gen `sX' = (`top' == 1) * (F.`top' == 0)  / `N_f'
-	gen `rX' = (`q_f' - F.`varlist') / `wbar' if `sX'
-	collapse (sum) sX = `sX' (mean) rX = `rX', by(`time')
-	gen outflow = sX * rX
-	order outflow
-	tempfile temp_outflow
-	save `temp_outflow'
+	tempfile birth
+	save `birth'
 
 	* death between t and t+1
 	use `temp', clear
-	merge m:1 `time' using `temp_within', keep(master matched) nogen
+	merge m:1 `time' using `within', keep(master matched) nogen
 	tsset `id' `time'
 	gen `sD' = (`top' == 1) * (F.`top' == .) / `N_f'
 	gen `rD' = (`q_f' - `varlist' * (1 + within)) / `wbar' if `sD'
@@ -116,39 +116,42 @@ program define decompose, sortpreserve
 	gen death = sD * rD
 	replace death = 0 if sD == 0
 	order death
-	tempfile temp_death
-	save `temp_death'
+	tempfile death
+	save `death'
 
 	* population growth between t and t + 1
-	use `temp_agg'
-	merge m:1 `time' using `temp_within', nogen
+	use `agg'
+	merge m:1 `time' using `within', nogen
 	gen sP = (`N_f'-`N') / `N_f'
 	gen rP = (`q_f' - `wbar' * (1 + within)) / `wbar'
 	gen popgrowth = sP * rP
-	order popgrowth
-	tempfile temp_popgrowth
-	save `temp_popgrowth'
+	order `time' popgrowth sP rP
+	keep `time' popgrowth sP rP
+	tempfile popgrowth
+	save `popgrowth'
 
 	***************************************************************************************************
 	*Put everything together
 	***************************************************************************************************
 
-	use `temp_total'
-	merge 1:1 `time' using `temp_within', nogen
-	merge 1:1 `time' using `temp_inflow', nogen
-	merge 1:1 `time' using `temp_outflow', nogen
-	merge 1:1 `time' using `temp_death', nogen
-	merge 1:1 `time' using `temp_popgrowth', nogen
-	merge 1:1 `time' using `temp_birth', nogen
+	use `total'
+	merge 1:1 `time' using `within', nogen
+	merge 1:1 `time' using `inflow', nogen
+	merge 1:1 `time' using `outflow', nogen
+	merge 1:1 `time' using `birth', nogen
+	merge 1:1 `time' using `death', nogen
+	merge 1:1 `time' using `popgrowth', nogen
 	
 	* Remove first and last time
 	sum `time'
 	drop if inlist(`time', r(min), r(max))
-
 	* Check terms sum to 1
 	cap assert abs(total - (within + inflow + outflow + birth + death + popgrowth)) < 1e-6
 	if _rc{
 		di as error "Terms do not sum to the growth of the average wealth in the top percentile. Please file an issue at https://github.com/matthieugomez/Decomposing-the-growth-of-top-wealth-shares"
 		exit 198
 	}
+	save `using', `replace' `clear'
+
+	restore
 end

@@ -1,25 +1,26 @@
 {smcl}
 {* *! version 0.1 7feb2021}{...}
-{viewerjumpto "Syntax" "decompose##syntax"}{...}
-{viewerjumpto "Description" "decompose##description"}{...}
-{viewerjumpto "Options" "decompose##options"}{...}
-{viewerjumpto "Examples" "decompose##examples"}{...}
-{viewerjumpto "Stored results" "decompose##results"}{...}
-{viewerjumpto "References" "decompose##references"}{...}
-{viewerjumpto "Author" "decompose##contact"}{...}
+{viewerjumpto "Syntax" "meanpercentile##syntax"}{...}
+{viewerjumpto "Description" "meanpercentile##description"}{...}
+{viewerjumpto "Options" "meanpercentile##options"}{...}
+{viewerjumpto "Examples" "meanpercentile##examples"}{...}
+{viewerjumpto "Stored results" "meanpercentile##results"}{...}
+{viewerjumpto "References" "meanpercentile##references"}{...}
+{viewerjumpto "Author" "meanpercentile##contact"}{...}
 
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
-{p2col :{cmd:decompose} {hline 2}}Decomposing the Growth of the Average Wealth in a Top Percentile{p_end}
+{p2col :{cmd:meanpercentile} {hline 2}}Decomposing the Growth of the Average Wealth in a Top Percentile{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
 {title:Syntax}
 
 
-{p 8 15 2} {cmd:decompose}
+{p 8 15 2} {cmd:meanpercentile}
 {varname}
+{cmd:using filename}
 [
 {cmd:,}
 {opth top(indicatorvar)}] 
@@ -29,7 +30,7 @@
 {title:Description}
 
 {pstd}
-The command decomposes the growth of an average variable ({varname}) in a top percentile (indicated by {it:indicatorvar}) over time. It returns a within, inflow, outflow, birth, death, and population growth terms. The original dataset must be in a panel form.
+The command decomposes the growth of an average variable ({varname}) in a top percentile (indicated by {it:indicatorvar}) over time. It returns a within, inflow, outflow, birth, death, and population growth terms. The original dataset must be in a panel form. The decomposition is saved in an external dataset specified by {it:filename}
 
 
 
@@ -46,7 +47,7 @@ The command decomposes the growth of an average variable ({varname}) in a top pe
 {pstd}Decompose average income in top 1% for a dataset with id, year, income{p_end}
 {phang2}{cmd:. bys year (income): gen top = _N -_n + 1 <= 0.01 * _N}{p_end}
 {phang2}{cmd:. tsset id year}{p_end}
-{phang2}{cmd:. decompose income, top(top)}{p_end}
+{phang2}{cmd:. meanpercentile income using ~/tempfile, top(top)}{p_end}
 
 {marker references}{...}
 {title:References}

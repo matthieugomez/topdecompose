@@ -30,6 +30,10 @@ program define growthpercentile
 	local id `r(panelvar)'
 	local time  `r(timevar)'
 
+	if regexm("`time'", "^w0_") | regexm("`time'", "^w1_") | regexm("`time'", "n_") | ("`time'" == "q1"){
+		di as error "The time variable "`time'" cannot start with w0_, w1_, or n_ or be equal to q1"
+		exit 198
+	}
 	***************************************************************************************************
 	*Do decomposition
 	***************************************************************************************************
@@ -84,14 +88,14 @@ program define growthpercentile
 	qui use `temp', clear
 	qui gen `set' = "P1" if `topindicator' == 1
 	qui replace `set' = "notP1" if `topindicator' == 0
-	qui collapse  (min) wmin = `varlist' (max) wmax = `varlist', by(`time' `set')
-	qui reshape wide wmin wmax, i(`time') j(`set') string
-	cap assert wminP1 >= wmaxnotP1 - 1
+	qui collapse  (min) w1_min = `varlist' (max) w1_max = `varlist', by(`time' `set')
+	qui reshape wide w1_min w1_max, i(`time') j(`set') string
+	cap assert w1_minP1 >= w1_maxP1 - 1
 	if _rc{
 		di "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
 	}
 	qui replace `time' = `time' - 1
-	qui rename wminP1 q1
+	qui rename w1_minP1 q1
 	qui keep `time' q1
 	qui sum `time'
 	qui drop if `time' == r(min)

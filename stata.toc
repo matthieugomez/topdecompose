@@ -1,6 +1,6 @@
 v 0.1
 d Matthieu Gomez, Columbia University (mg3901@columbia.edu)
-p meanpercentile MEANPERCENTILE - decompose the growth of top wealth shares
+p growthpercentile GROWTHPERCENTILE - decompose the growth of the average wealth in a top percentile
 
 * l word-to-show path-or-url [description]
 * t: Directories within site:

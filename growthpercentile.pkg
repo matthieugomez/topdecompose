@@ -1,6 +1,6 @@
 v 0.1
 
-d meanpercentile. decompose the growth of top shares
+d growthpercentile. decompose the growth of top shares
 d
 d Author: Matthieu Gomez
 d
@@ -11,4 +11,4 @@ d Requires: Stata version 11.2
 d
 d Distribution-Date: 20210101
 d
-f meanpercentile.ado
+f growthpercentile.ado

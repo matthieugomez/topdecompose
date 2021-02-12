@@ -25,7 +25,7 @@
 {title:Description}
 
 {pstd}
-The command decomposes the growth of the average {varname} in a top percentile group. It returns a dataset which, for each time, contains the total growth of the average variable as well as its decomposition into a within, inflow, outflow, birth, death, and population growth terms. The original dataset must be in a panel form ({help tsset}). 
+The command decomposes the growth of the average {varname} in a top percentile group. It returns the total growth of the average variable as well as its decomposition into a within, inflow, outflow, birth, death, and population growth terms. The original dataset must be in a panel form ({help tsset}). 
 
 
 {marker options}{...}
@@ -35,11 +35,11 @@ The command decomposes the growth of the average {varname} in a top percentile g
 {synoptline}
 {synopt:{opth group:indicator(strings:varname)}} Dummy variable indicating whether the observation is in the top percentile or not. When left unspecified, the decomposition is done for the top 100%. {p_end}
 
-{synopt:{opth save(filename)}}  Save output in external dataset. {p_end}
+{synopt:{opth save(filename)}}  Save output in an external dataset. {p_end}
 
-{synopt:{opt clear}}  Replace existing dataset with result of decomposition (Alternative to {cmd:save}). {p_end}
+{synopt:{opt clear}}  Replace the existing dataset with the result of decomposition (Alternative to the {cmd:save} option). {p_end}
 
-{synopt:{opt d:etail}}  Returns detailed summary statistics. {p_end}
+{synopt:{opt d:etail}}  Returns details of the decomposition, such as cardinality and average wealth within subsets of individuals. {p_end}
 
 
 {marker examples}{...}

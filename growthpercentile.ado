@@ -1,9 +1,8 @@
 program define growthpercentile
 	syntax varlist(max=1 numeric), [TOPindicator(varname numeric) save(string) replace clear Detail]
 
-	***************************************************************************************************
-	*Check Inputs
-	***************************************************************************************************
+
+	/* 0: Check Inputs */
 	if "`save'`clear'" == ""{
 		di as error "You need to specify either the option save(filename) or the option clear. The first saves the output in an external file while the second replaces the existing dataset."
 		exit 198
@@ -11,14 +10,20 @@ program define growthpercentile
 
 	if "`topindicator'" == ""{
 		tempvar topindicator
-		qui gen byte `topindicator' = 1
+		qui gen byte `topindicator' = !missing(`varlist')
 	}
 
-	cap assert `topindicator' == 0 | `topindicator' == 1
+	cap assert inlist(`topindicator', 0 , 1, .)
 	if _rc{
-		di as error "The dummy variable `topindicator', indicating whether an individual is in the top percentile, must only take values 0 and 1. If the individual is not in the economy at time t, drop the corresponding observation"
+		di as error "The dummy variable `topindicator', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
 		exit 198
 	}
+
+	*cap assert `varlist' == . if `topindicator' == .
+	*if _rc{
+	*	di as error "The dummy variable `topindicator' is missing but `varlist' is not missing"
+	*	exit 198
+	*}
 
 	cap assert `varlist' != .  if ((`topindicator' == 1) | (L.`topindicator' == 1))
 	if _rc{
@@ -34,12 +39,12 @@ program define growthpercentile
 		di as error "The time variable "`time'" cannot start with w0_, w1_, or n_ or be equal to q1"
 		exit 198
 	}
-	***************************************************************************************************
-	*Do decomposition
-	***************************************************************************************************
+
+
+
 	preserve
 	tempfile temp
-	save `temp'
+	qui save `temp'
 	tempvar set
 
 	/* 1: Decomposing average at P0 */
@@ -59,7 +64,7 @@ program define growthpercentile
 		qui replace n_`suffix' = 0 if n_`suffix' == .
 	}
 	tempfile temp0
-	save `temp0'
+	qui save `temp0'
 
 	/* 2: Decomposing average at P1 */
 	qui use `temp', clear
@@ -82,12 +87,13 @@ program define growthpercentile
 		qui replace n_`suffix' = 0 if n_`suffix' == .
 	}
 	tempfile temp1
-	save `temp1'
+	qui save `temp1'
 
 	/* 3: Compute quantile q1 */	
 	qui use `temp', clear
 	qui gen `set' = "P1" if `topindicator' == 1
 	qui replace `set' = "notP1" if `topindicator' == 0
+	drop if missing(`set')
 	qui collapse  (min) w1_min = `varlist' (max) w1_max = `varlist', by(`time' `set')
 	qui reshape wide w1_min w1_max, i(`time') j(`set') string
 	cap assert w1_minP1 >= w1_maxP1 - 1
@@ -121,14 +127,16 @@ program define growthpercentile
 	qui gen death = n_D / n_P1 * (q1 - (w1_P0minusD / w0_P0minusD) * w0_D) / w0_P0
 	qui gen popgrowth = (n_P1 - n_P0) / n_P1 * (q1 - (w1_P0minusD / w0_P0minusD) * w0_P0) / w0_P0
 
-	* test sum to total
+
+
+	/* 5: test terms sum to total */
 	cap assert abs(total - (within + inflow + outflow + birth + death + popgrowth)) < 1e-6
 	if _rc{
 		di as error "Terms do not sum to the growth of the average wealth in the top percentile. Please file an issue at https://github.com/matthieugomez/Decomposing-the-growth-of-top-wealth-shares"
 		exit 198
 	}
 
-	* output
+	/* 6: return results */
 	if "`detail'" == ""{
 		qui keep `time' total within inflow outflow birth death popgrowth
 		qui order `time' total within inflow outflow birth death popgrowth

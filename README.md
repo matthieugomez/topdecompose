@@ -18,7 +18,7 @@ Matthieu Gomez *Decomposing the Growth of Top Wealth Shares*. Working Paper
 # Installation
 
 ```
-net install growthpercentile from("https://raw.githubusercontent.com/matthieugomez/decomposing_the_growth_of_top_wealth_shares/master/")
+net install growthpercentile from("https://raw.githubusercontent.com/matthieugomez/growthpercentile/master/")
 ```
 If you have a version of Stata < 13, you need to install it manually
 

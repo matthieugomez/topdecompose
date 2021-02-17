@@ -23,7 +23,7 @@ program define growthpercentile
 		}
 		marksample touse
 		tempvar topindicator
-		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= (100 - `percentile') * _N if `touse' == 1
+		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= (100 - `percentile') / 100 * _N if `touse' == 1
 		tsset `id' `time'
 	}
 
@@ -94,7 +94,7 @@ program define growthpercentile
 	qui use `temp', clear
 	qui gen `set' = "P1" if `topindicator' == 1
 	qui replace `set' = "notP1" if `topindicator' == 0
-	drop if missing(`set')
+	qui drop if missing(`set')
 	qui collapse  (min) w1_min = `varlist' (max) w1_max = `varlist', by(`time' `set')
 	qui reshape wide w1_min w1_max, i(`time') j(`set') string
 	cap assert w1_minP1 >= w1_maxnotP1 - 1

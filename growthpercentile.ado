@@ -1,16 +1,30 @@
 program define growthpercentile
-	syntax varlist(max=1 numeric), [TOPindicator(varname numeric) save(string) replace clear Detail]
+	syntax varlist(max=1 numeric), [Percentile(numlist >0 <=100) TOPindicator(varname numeric) save(string) replace clear Detail]
 
 
 	/* 0: Check Inputs */
+	qui tsset
+	local id `r(panelvar)'
+	local time  `r(timevar)'
+	if regexm("`time'", "^w0_") | regexm("`time'", "^w1_") | regexm("`time'", "n_") | ("`time'" == "q1"){
+		di as error "The time variable "`time'" cannot start with w0_, w1_, or n_ or be equal to q1"
+		exit 198
+	}
+
 	if "`save'`clear'" == ""{
 		di as error "You need to specify either the option save(filename) or the option clear. The first saves the output in an external file while the second replaces the existing dataset."
 		exit 198
 	}
 
-	if "`topindicator'" == ""{
+	if "`percentile'" != ""{
+		cap assert "`topindicator'" == ""
+		if _rc{
+			di as error "You cannot specify both percentile and topindicator"
+		}
+		marksample touse
 		tempvar topindicator
-		qui gen byte `topindicator' = !missing(`varlist')
+		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= (100 - `percentile') * _N if `touse' == 1
+		tsset `id' `time'
 	}
 
 	cap assert inlist(`topindicator', 0 , 1, .)
@@ -19,26 +33,13 @@ program define growthpercentile
 		exit 198
 	}
 
-	*cap assert `varlist' == . if `topindicator' == .
-	*if _rc{
-	*	di as error "The dummy variable `topindicator' is missing but `varlist' is not missing"
-	*	exit 198
-	*}
-
 	cap assert `varlist' != .  if ((`topindicator' == 1) | (L.`topindicator' == 1))
 	if _rc{
 		di as error "Missing values for `varlist' are not allowed if the individual is in the top percentile this period or the previous period."
 		exit 198
 	}
 
-	qui tsset
-	local id `r(panelvar)'
-	local time  `r(timevar)'
 
-	if regexm("`time'", "^w0_") | regexm("`time'", "^w1_") | regexm("`time'", "n_") | ("`time'" == "q1"){
-		di as error "The time variable "`time'" cannot start with w0_, w1_, or n_ or be equal to q1"
-		exit 198
-	}
 
 
 
@@ -96,9 +97,10 @@ program define growthpercentile
 	drop if missing(`set')
 	qui collapse  (min) w1_min = `varlist' (max) w1_max = `varlist', by(`time' `set')
 	qui reshape wide w1_min w1_max, i(`time') j(`set') string
-	cap assert w1_minP1 >= w1_maxP1 - 1
+	cap assert w1_minP1 >= w1_maxnotP1 - 1
 	if _rc{
-		di "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
+		di as error "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
+		exit 198
 	}
 	qui replace `time' = `time' - 1
 	qui rename w1_minP1 q1

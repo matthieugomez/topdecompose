@@ -1,15 +1,14 @@
-This package provides a command to decompose the growth of an average wealth in a top wealth percentile into a within term, a displacement term, and a demography term.
+This package provides a command to decompose the growth of the average quantity in a top percentile into a within term, a displacement term, and a demography term.
 
 The syntax is
 ```
-growthpercentile varname  [, GROUPindicator(indicatorvariable) save(filename) replace clear Detail]
+growthpercentile varname  [, Percentile(numlist) TOPindicator(indicatorvariable) save(filename) replace clear Detail]
 ```
 where 
 - `varname` is the variable to decompose
-- `groupindicator` is a dummy variable indicating whether the observation belongs to the top percentile. When not specified, the decomposition is done for the top 100%.
-- `filename` a filepath to save the output as a dataset
-- `clear` means that the output replaces existing dataset
-- `details` provides more intermediary quantities such as average wealth in subsets of individuals
+- `Percentile` percentile to use (99 to decompose the top 1%). Alternatively specify directly a `indicatorvariable`, which is a dummy variable indicating whether the observation belongs to the top percentile
+- `filename` a filepath to save the output as a dataset. Alternatively, `clear` to replace the existing dataset
+- `details` provides more intermediary quantities (e.g. average quantity in subsets of individuals)
 
 # References
 

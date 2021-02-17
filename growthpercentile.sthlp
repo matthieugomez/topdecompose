@@ -33,7 +33,10 @@ The command decomposes the growth of the average {varname} in a top percentile g
 
 {synoptset 25 tabbed}{...}
 {synoptline}
-{synopt:{opth top:indicator(strings:varname)}} Dummy variable indicating whether the observation is in the top percentile or not. When left unspecified, the decomposition is done for the top 100%. {p_end}
+
+{synopt:{opth p:ercentile(numlist)}} Percentile to use. Number between 0 and 100 (e.g., specify 99 to decompose the top 1%). Default to 0. {p_end}
+
+{synopt:{opth top:indicator(strings:varname)}} Dummy variable indicating whether the observation is in the top percentile or not. {p_end}
 
 {synopt:{opth save(filename)}}  Save output in an external dataset. {p_end}
 

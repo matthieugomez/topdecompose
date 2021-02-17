@@ -55,13 +55,16 @@ The command decomposes the growth of the average {varname} in a top percentile g
 {phang2}{cmd:. gen id = _n}{p_end}
 {phang2}{cmd:. expand  2}{p_end}
 {phang2}{cmd:. gen year = _n > 100}{p_end}
-{phang2}{cmd:. gen wealth = runiform()}{p_end}
 {phang2}{cmd:. drop if  runiform() <= 0.1}{p_end}
-{pstd}Create group indicator variable{p_end}
-{phang2}{cmd:. bys year (wealth): gen top = _N -_n + 1 <= 0.5 * _N}{p_end}
-{pstd}Do the decomposition{p_end}
+{phang2}{cmd:. gen wealth = runiform()}{p_end}
 {phang2}{cmd:. tsset id year}{p_end}
-{phang2}{cmd:. growthpercentile wealth, topindicator(top) clear}{p_end}
+{pstd} Using percentile{p_end}
+{phang2}{cmd:. growthpercentile wealth, p(90) clear}{p_end}
+{pstd}Using indicator variable{p_end}
+{phang2}{cmd:. bys year (wealth): gen dummy = _n >= 0.9 * _N}{p_end}
+{phang2}{cmd:. tsset id year}{p_end}
+{phang2}{cmd:. growthpercentile wealth, top(dummy) clear}{p_end}
+{pstd}Do the decomposition{p_end}
 
 {marker references}{...}
 {title:References}

@@ -23,7 +23,7 @@ program define growthpercentile
 		}
 		marksample touse
 		tempvar topindicator
-		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= (100 - `percentile') / 100 * _N if `touse' == 1
+		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= `percentile' / 100 * _N if `touse' == 1
 		tsset `id' `time'
 	}
 

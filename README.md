@@ -27,6 +27,5 @@ Extract it into a folder (e.g. ~/SOMEFOLDER)
 
 Run
 ```
-cap ado uninstall growthpercentile
 net install growthpercentile, from("~/SOMEFOLDER")
 ```

@@ -1,5 +1,4 @@
-This package provides a command to decompose the growth of the average quantity in a top percentile into a within term, a displacement term, and a demography term.
-
+This package provides a command to decompose the growth of an average quantity in a top percentile (in particular, the average wealth).
 The syntax is
 ```
 growthpercentile varname  [, Percentile(numlist) TOPindicator(indicatorvariable) save(filename) replace clear Detail]

@@ -6,60 +6,68 @@ program define meanpercentile
 	qui tsset
 	local id `r(panelvar)'
 	local time  `r(timevar)'
-	if regexm("`time'", "^w0_") | regexm("`time'", "^w1_") | regexm("`time'", "n_") | ("`time'" == "q1"){
-		di as error "The time variable "`time'" cannot start with w0_, w1_, or n_ or be equal to q1"
+	if inlist("`time'", "total", "within", "displacement", "demography"){
+		di as error "The time variable cannot be named as: total, within, displacement, or demography"
 		exit 198
 	}
-
-	if "`save'`clear'" == ""{
-		di as error "You need to specify either the option save(filename) or the option clear. The first saves the output in an external file while the second replaces the existing dataset."
-		exit 198
+	if "`detail"!="" & inlist("`time'", "inflow", "outflow", "birth", "death", "popgrowth") {
+		di as error "The time variable cannot be named as: inflow outflow birth death popgrowth"
+	}
+	if "`detail"!="" & inlist("`time'", "n_P0", "n_E", "n_X", "n_B", "n_D", "n_P1") {
+		di as error "The time variable cannot be named as: n_P0 n_E n_X n_B n_D n_P1 q1"
 	}
 
-	if "`log'" != "" & "`detail'" != ""{
-		di as error "The options log and details cannot be specified at the same time."
+	if "`detail"!="" & inlist("`time'", "w0_P0", "w1_E", "w1_E", "w1_X", "w1_B", "w0_D", "w1_P1", "q1") {
+		di as error "The time variable cannot be named as: w0_P0 w1_E w1_X w1_X w0_D w1_P1 q1"
 	}
 
 
-	if "`percentile'" != ""{
-		cap assert "`topindicator'" == ""
-		if _rc{
-			di as error "You cannot specify both percentile and topindicator"
-		}
-		marksample touse
-		tempvar topindicator
-		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= `percentile' / 100 * _N if `touse' == 1
-		tsset `id' `time'
-	}
+if "`save'`clear'" == ""{
+	di as error "You need to specify either the option save(filename) or the option clear. The first saves the output in an external file while the second replaces the existing dataset."
+	exit 198
+}
 
-	cap assert inlist(`topindicator', 0 , 1, .)
+if "`log'" != "" & "`detail'" != ""{
+	di as error "The options log and details cannot be specified at the same time."
+}
+
+if "`percentile'" != ""{
+	cap assert "`topindicator'" == ""
 	if _rc{
-		di as error "The dummy variable `topindicator', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
-		exit 198
+		di as error "You cannot specify both percentile and topindicator"
 	}
+	marksample touse
+	tempvar topindicator
+	bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= `percentile' / 100 * _N if `touse' == 1
+	tsset `id' `time'
+}
 
-	cap assert `varlist' != .  if ((`topindicator' == 1) | (L.`topindicator' == 1))
-	if _rc{
-		di as error "Missing values for `varlist' are not allowed if the individual is in the top percentile this period or the previous period."
-		exit 198
-	}
+cap assert inlist(`topindicator', 0 , 1, .)
+if _rc{
+	di as error "The dummy variable `topindicator', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
+	exit 198
+}
+
+cap assert `varlist' != .  if ((`topindicator' == 1) | (L.`topindicator' == 1))
+if _rc{
+	di as error "Missing values for `varlist' are not allowed if the individual is in the top percentile this period or the previous period."
+	exit 198
+}
 
 
 
+preserve
+tempfile temp
+qui save `temp'
+tempvar set n w0 w1 inflow outflow birth death popgrowth q1
 
-
-	preserve
-	tempfile temp
-	qui save `temp'
-	tempvar set n w0 w1 inflow outflow birth death popgrowth q1
-
-	/* 1: Decomposing average at P0 */
-	qui gen `set' = "P0minusD" if `topindicator' == 1 & F.`topindicator' != .
-	qui replace `set' = "D" if `topindicator' == 1 & F.`topindicator' == .
-	qui drop if missing(`set')
-	tempvar 
-	qui collapse (count) `n' = `varlist' (mean) `w0' = `varlist', by(`time' `set')
-	qui reshape wide `n' `w0', i(`time') j(`set') string
+/* 1: Decomposing average at P0 */
+qui gen `set' = "P0minusD" if `topindicator' == 1 & F.`topindicator' != .
+qui replace `set' = "D" if `topindicator' == 1 & F.`topindicator' == .
+qui drop if missing(`set')
+tempvar 
+qui collapse (count) `n' = `varlist' (mean) `w0' = `varlist', by(`time' `set')
+qui reshape wide `n' `w0', i(`time') j(`set') string
 	* Handle the fact that, when sets are empty, variables may not exist (always empty) or be missing
 	foreach suffix in P0minusD D{
 		cap confirm variable `n'`suffix'

@@ -1,7 +1,7 @@
 This package provides a command to decompose the growth of an average quantity in a top percentile (in particular, the average wealth).
 The syntax is
 ```
-growthpercentile varname  [, Percentile(numlist) TOPindicator(indicatorvariable) save(filename) replace clear Detail]
+meanpercentile varname  [, Percentile(numlist) TOPindicator(indicatorvariable) save(filename) replace clear Detail]
 ```
 where 
 - `varname` is the variable to decompose
@@ -16,7 +16,7 @@ Matthieu Gomez *Decomposing the Growth of Top Wealth Shares*. Working Paper
 # Installation
 
 ```
-net install growthpercentile from("https://raw.githubusercontent.com/matthieugomez/growthpercentile/master/")
+net install meanpercentile from("https://raw.githubusercontent.com/matthieugomez/meanpercentile/master/")
 ```
 If you have a version of Stata < 13, you need to install it manually
 
@@ -26,5 +26,5 @@ Extract it into a folder (e.g. ~/SOMEFOLDER)
 
 Run
 ```
-net install growthpercentile, from("~/SOMEFOLDER")
+net install meanpercentile, from("~/SOMEFOLDER")
 ```

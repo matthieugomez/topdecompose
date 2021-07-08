@@ -1,25 +1,25 @@
 {smcl}
 {* *! version 0.1 7feb2021}{...}
-{viewerjumpto "Syntax" "growthpercentile##syntax"}{...}
-{viewerjumpto "Description" "growthpercentile##description"}{...}
-{viewerjumpto "Options" "growthpercentile##options"}{...}
-{viewerjumpto "Examples" "growthpercentile##examples"}{...}
-{viewerjumpto "References" "growthpercentile##references"}{...}
-{viewerjumpto "Author" "growthpercentile##contact"}{...}
+{viewerjumpto "Syntax" "meanpercentile##syntax"}{...}
+{viewerjumpto "Description" "meanpercentile##description"}{...}
+{viewerjumpto "Options" "meanpercentile##options"}{...}
+{viewerjumpto "Examples" "meanpercentile##examples"}{...}
+{viewerjumpto "References" "meanpercentile##references"}{...}
+{viewerjumpto "Author" "meanpercentile##contact"}{...}
 
 
 
 {title:Title}
 
 {p2colset 4 24 24 8}{...}
-{p2col :{cmd:growthpercentile} {hline 2}}Decompose the growth of an average variable in a top percentile{p_end}
+{p2col :{cmd:meanpercentile} {hline 2}}Decompose the growth of an average variable in a top percentile{p_end}
 {p2colreset}{...}
 
 
 {marker syntax}{...}
 {title:Syntax}
 
-{p 8 15 2} {cmd:growthpercentile} {varname} {cmd:,} [ {help growthpercentile##options:options}]{p_end}
+{p 8 15 2} {cmd:meanpercentile} {varname} {cmd:,} [ {help meanpercentile##options:options}]{p_end}
 
 {marker description}{...}
 {title:Description}
@@ -59,11 +59,11 @@ The command decomposes the growth of the average {varname} in a top percentile g
 {phang2}{cmd:. gen wealth = runiform()}{p_end}
 {phang2}{cmd:. tsset id year}{p_end}
 {pstd} Using percentile{p_end}
-{phang2}{cmd:. growthpercentile wealth, p(90) clear}{p_end}
+{phang2}{cmd:. meanpercentile wealth, p(90) clear}{p_end}
 {pstd}Using indicator variable{p_end}
 {phang2}{cmd:. bys year (wealth): gen dummy = _n >= 0.9 * _N}{p_end}
 {phang2}{cmd:. tsset id year}{p_end}
-{phang2}{cmd:. growthpercentile wealth, top(dummy) clear}{p_end}
+{phang2}{cmd:. meanpercentile wealth, top(dummy) clear}{p_end}
 {pstd}Do the decomposition{p_end}
 
 {marker references}{...}

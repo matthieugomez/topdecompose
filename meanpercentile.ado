@@ -1,5 +1,5 @@
-program define growthpercentile
-	syntax varlist(max=1 numeric), [Percentile(numlist >0 <=100) TOPindicator(varname numeric) save(string) replace clear Detail]
+program define meanpercentile
+	syntax varlist(max=1 numeric), [Percentile(numlist >0 <=100) TOPindicator(varname numeric) save(string) log replace clear Detail]
 
 
 	/* 0: Check Inputs */
@@ -15,6 +15,11 @@ program define growthpercentile
 		di as error "You need to specify either the option save(filename) or the option clear. The first saves the output in an external file while the second replaces the existing dataset."
 		exit 198
 	}
+
+	if "`log'" != "" & "`detail'" != ""{
+		di as error "The options log and details cannot be specified at the same time."
+	}
+
 
 	if "`percentile'" != ""{
 		cap assert "`topindicator'" == ""
@@ -46,23 +51,24 @@ program define growthpercentile
 	preserve
 	tempfile temp
 	qui save `temp'
-	tempvar set
+	tempvar set n w0 w1 inflow outflow birth death popgrowth q1
 
 	/* 1: Decomposing average at P0 */
 	qui gen `set' = "P0minusD" if `topindicator' == 1 & F.`topindicator' != .
 	qui replace `set' = "D" if `topindicator' == 1 & F.`topindicator' == .
 	qui drop if missing(`set')
-	qui collapse (count) n_ = `varlist' (mean) w0_ = `varlist', by(`time' `set')
-	qui reshape wide n_ w0_, i(`time') j(`set') string
+	tempvar 
+	qui collapse (count) `n' = `varlist' (mean) `w0' = `varlist', by(`time' `set')
+	qui reshape wide `n' `w0', i(`time') j(`set') string
 	* Handle the fact that, when sets are empty, variables may not exist (always empty) or be missing
 	foreach suffix in P0minusD D{
-		cap confirm variable n_`suffix'
+		cap confirm variable `n'`suffix'
 		if _rc{
-			qui gen n_`suffix' = .
-			qui gen w0_`suffix' = .
+			qui gen `n'`suffix' = .
+			qui gen `w0'`suffix' = .
 		}
-		qui replace w0_`suffix' = 0 if n_`suffix' == .
-		qui replace n_`suffix' = 0 if n_`suffix' == .
+		qui replace `w0'`suffix' = 0 if `n'`suffix' == .
+		qui replace `n'`suffix' = 0 if `n'`suffix' == .
 	}
 	tempfile temp0
 	qui save `temp0'
@@ -74,18 +80,18 @@ program define growthpercentile
 	qui replace `set' = "B" if `topindicator' == 1 & L.`topindicator' == .
 	qui replace `set' = "X" if `topindicator' == 0 & L.`topindicator' == 1
 	qui drop if missing(`set')
-	qui collapse (count) n_ = `varlist' (mean) w1_ = `varlist', by(`time' `set')
-	qui reshape wide n_ w1_, i(`time') j(`set') string
+	qui collapse (count) `n' = `varlist' (mean) `w1' = `varlist', by(`time' `set')
+	qui reshape wide `n' `w1', i(`time') j(`set') string
 	qui replace `time' = `time' - 1
 	* Handle the fact that, when sets are empty, variables may not exist (always empty) or be missing
 	foreach suffix in P1capP0 E B X{
-		cap confirm variable n_`suffix'
+		cap confirm variable `n'`suffix'
 		if _rc{
-			qui gen n_`suffix' = .
-			qui gen w1_`suffix' = .
+			qui gen `n'`suffix' = .
+			qui gen `w1'`suffix' = .
 		}
-		qui replace w1_`suffix' = 0 if n_`suffix' == .
-		qui replace n_`suffix' = 0 if n_`suffix' == .
+		qui replace `w1'`suffix' = 0 if `n'`suffix' == .
+		qui replace `n'`suffix' = 0 if `n'`suffix' == .
 	}
 	tempfile temp1
 	qui save `temp1'
@@ -95,44 +101,43 @@ program define growthpercentile
 	qui gen `set' = "P1" if `topindicator' == 1
 	qui replace `set' = "notP1" if `topindicator' == 0
 	qui drop if missing(`set')
-	qui collapse  (min) w1_min = `varlist' (max) w1_max = `varlist', by(`time' `set')
-	qui reshape wide w1_min w1_max, i(`time') j(`set') string
-	cap assert w1_minP1 >= w1_maxnotP1 - 1
+	qui collapse  (min) `w1'_min = `varlist' (max) `w1'_max = `varlist', by(`time' `set')
+	qui reshape wide `w1'_min `w1'_max, i(`time') j(`set') string
+	cap assert `w1'_minP1 >= `w1'_maxnotP1 - 1
 	if _rc{
 		di as error "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
 		exit 198
 	}
 	qui replace `time' = `time' - 1
-	qui rename w1_minP1 q1
-	qui keep `time' q1
+	qui rename `w1'minP1 `q1'
+	qui keep `time' `q1'
 	qui sum `time'
 	qui drop if `time' == r(min)
 
 	/* 4: combine everything together */
 	qui merge 1:1 `time' using `temp0', keep(master matched) nogen
 	qui merge 1:1 `time' using `temp1', keep(master matched) nogen
-	qui gen n_P0 = n_P0minusD + n_D
-	cap assert n_P0 > 0
+	qui gen `n'P0 = `n'P0minusD + `n'D
+	cap assert `n'P0 > 0
 	if _rc{
 		di as error "There are periods without any individuals in the top"
 		exit 198
 	}
-	qui gen w0_P0 = (n_P0minusD * w0_P0minusD + n_D * w0_D) / n_P0
-	qui gen n_P1 = n_P1capP0 + n_E + n_B
-	qui gen w1_P1 = (n_P1capP0 * w1_P1capP0 + n_E * w1_E + n_B * w1_B) / n_P1
-	qui gen w1_P0minusD = (n_X * w1_X  + n_P1capP0 * w1_P1capP0) / (n_X + n_P1capP0)
-	qui gen total = w1_P1 / w0_P0 - 1
-	qui gen within = w1_P0minusD / w0_P0minusD - 1
-	qui gen inflow = n_E / n_P1 * (w1_E - q1) / w0_P0
-	qui gen outflow = n_X / n_P1 * (q1 - w1_X) / w0_P0
-	qui gen birth = n_B / n_P1 * (w1_B - q1) / w0_P0
-	qui gen death = n_D / n_P1 * (q1 - (w1_P0minusD / w0_P0minusD) * w0_D) / w0_P0
-	qui gen popgrowth = (n_P1 - n_P0) / n_P1 * (q1 - (w1_P0minusD / w0_P0minusD) * w0_P0) / w0_P0
-
+	qui gen `w0'P0 = (`n'P0minusD * `w0'P0minusD + `n'D * `w0'D) / `n'P0
+	qui gen `n'P1 = `n'P1capP0 + `n'E + `n'B
+	qui gen `w1'P1 = (`n'P1capP0 * `w1'P1capP0 + `n'E * `w1'E + `n'B * `w1'B) / `n'P1
+	qui gen `w1'P0minusD = (`n'X * `w1'X  + `n'P1capP0 * `w1'P1capP0) / (`n'X + `n'P1capP0)
+	qui gen total = `w1'P1 / `w0'P0 - 1
+	qui gen within = `w1'P0minusD / `w0'P0minusD - 1
+	qui gen `inflow' = `n'E / `n'P1 * (`w1'E - `q1') / `w0'P0
+	qui gen `outflow' = `n'X / `n'P1 * (`q1' - `w1'X) / `w0'P0
+	qui gen `birth' = `n'B / `n'P1 * (`w1'B - `q1') / `w0'P0
+	qui gen `death' = `n'D / `n'P1 * (`q1' - (`w1'P0minusD / `w0'P0minusD) * `w0'D) / `w0'P0
+	qui gen `popgrowth' = (`n'P1 - `n'P0) / `n'P1 * (`q1' - (`w1'P0minusD / `w0'P0minusD) * `w0'P0) / `w0'P0
 
 
 	/* 5: test terms sum to total */
-	cap assert abs(total - (within + inflow + outflow + birth + death + popgrowth)) < 1e-6
+	cap assert abs(total - (within + `inflow' + `outflow' + `birth' + `death' + `popgrowth')) < 1e-6
 	if _rc{
 		di as error "Terms do not sum to the growth of the average wealth in the top percentile. Please file an issue at https://github.com/matthieugomez/Decomposing-the-growth-of-top-wealth-shares"
 		exit 198
@@ -140,18 +145,38 @@ program define growthpercentile
 
 	/* 6: return results */
 	if "`detail'" == ""{
-		qui keep `time' total within inflow outflow birth death popgrowth
-		qui order `time' total within inflow outflow birth death popgrowth
+		if "`log'" == ""{
+			gen displacement = `inflow' + `outflow'
+			gen demography = `birth' + `death' + `popgrowth'
+		}
+		else{
+			gen displacement = log(1 + (`inflow' + `outflow') / (1 + `within' + `birth' + `death' + `popgrowth'))
+			gen demography = log(1 + (`birth' + `death' + `popgrowth') / (1 + `within'))
+		}
+		qui keep `time' total within displacement demography
+		qui order `time' total within displacement demography
 	}
 	else{
 		foreach suffix in P0minusD D{
-			qui replace w0_`suffix' = . if n_`suffix' == 0
+			qui replace `w0'`suffix' = . if `n'`suffix' == 0
 		}
 		foreach suffix in P1capP0 E B X{
-			qui replace w1_`suffix' = . if n_`suffix' == 0
+			qui replace `w1'`suffix' = . if `n'`suffix' == 0
 		}
-		qui keep `time' total within inflow outflow birth death popgrowth n_P0 w0_P0 n_E w1_E n_X w1_X n_B w1_B n_D w0_D n_P1 w1_P1
-		qui order `time' total within inflow outflow birth death popgrowth n_P0 w0_P0 n_E w1_E n_X w1_X n_B w1_B n_D w0_D n_P1 w1_P1
+		qui rename `w0'P0  w0_P0
+		qui rename `n'P0  n_P0
+		foreach suffix in E X B D P1{
+			qui rename `w1'`suffix' w1_`suffix'
+			qui rename `n'`suffix' n_`suffix'
+		}
+		qui rename `inflow' inflow
+		qui rename `outflow' outflow
+		qui rename `birth' birth
+		qui rename `death' death
+		qui rename `popgrowth' popgrowth
+		qui rename `q1' q1
+		qui keep `time' total within inflow outflow birth death popgrowth n_P0 w0_P0 n_E w1_E n_X w1_X n_B w1_B n_D w0_D n_P1 w1_P1 q1
+		qui order `time' total within inflow outflow birth death popgrowth n_P0 w0_P0 n_E w1_E n_X w1_X n_B w1_B n_D w0_D n_P1 w1_P1 q1
 	}
 	if "`save'" != ""{
 		qui save `save', `replace'

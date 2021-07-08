@@ -101,9 +101,9 @@ program define meanpercentile
 	qui gen `set' = "P1" if `topindicator' == 1
 	qui replace `set' = "notP1" if `topindicator' == 0
 	qui drop if missing(`set')
-	qui collapse  (min) `w1'_min = `varlist' (max) `w1'_max = `varlist', by(`time' `set')
-	qui reshape wide `w1'_min `w1'_max, i(`time') j(`set') string
-	cap assert `w1'_minP1 >= `w1'_maxnotP1 - 1
+	qui collapse  (min) `w1'min = `varlist' (max) `w1'max = `varlist', by(`time' `set')
+	qui reshape wide `w1'min `w1'max, i(`time') j(`set') string
+	cap assert `w1'minP1 >= `w1'maxnotP1 - 1
 	if _rc{
 		di as error "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
 		exit 198
@@ -157,15 +157,17 @@ program define meanpercentile
 		qui order `time' total within displacement demography
 	}
 	else{
-		foreach suffix in P0minusD D{
+		foreach suffix in P0 D{
 			qui replace `w0'`suffix' = . if `n'`suffix' == 0
 		}
 		foreach suffix in P1capP0 E B X{
 			qui replace `w1'`suffix' = . if `n'`suffix' == 0
 		}
-		qui rename `w0'P0  w0_P0
-		qui rename `n'P0  n_P0
-		foreach suffix in E X B D P1{
+		foreach suffix in P0 D{
+			qui rename `w0'`suffix'  w0_`suffix'
+			qui rename `n'`suffix'  n_`suffix'
+		}
+		foreach suffix in E X B P1{
 			qui rename `w1'`suffix' w1_`suffix'
 			qui rename `n'`suffix' n_`suffix'
 		}

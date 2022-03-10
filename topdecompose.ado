@@ -24,7 +24,6 @@ program define topdecompose
 		exit 198
 	}
 
-
 	cap assert inlist(`top', 0 , 1, .)
 	if _rc{
 		di as error "The dummy variable `top', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
@@ -59,30 +58,30 @@ program define topdecompose
 			qui gen `w0'`suffix' = .
 		}
 		qui replace `n'`suffix' = 0 if `n'`suffix' == .
-		qui replace `w0'`suffix' = 0 if `n'`suffix' == .
+		qui replace `w0'`suffix' = 0 if `n'`suffix' == 0
 	}
+	qui replace `time' = `time' + 1
 	tempfile temp0
 	qui save `temp0'
 
 	/* 2: Decomposing average at P1 */
 	qui use `temp', clear
 	qui gen `set' = "P1capP0" if `top' == 1 & L.`top' == 1
-	qui replace `set' = "E" if `top' == 1 & L.`top' == 0
+	qui replace `set' = "I" if `top' == 1 & L.`top' == 0
 	qui replace `set' = "B" if `top' == 1 & L.`top' == .
-	qui replace `set' = "X" if `top' == 0 & L.`top' == 1
+	qui replace `set' = "O" if `top' == 0 & L.`top' == 1
 	qui drop if missing(`set')
 	qui collapse (count) `n' = `varlist' (mean) `w1' = `varlist', by(`time' `set')
 	qui reshape wide `n' `w1', i(`time') j(`set') string
-	qui replace `time' = `time' - 1
 	* Handle the fact that, when sets are empty, variables may not exist (always empty) or be missing
-	foreach suffix in P1capP0 E B X{
+	foreach suffix in P1capP0 I B O{
 		cap confirm variable `n'`suffix'
 		if _rc{
 			qui gen `n'`suffix' = .
 			qui gen `w1'`suffix' = .
 		}
 		qui replace `n'`suffix' = 0 if `n'`suffix' == .
-		qui replace `w1'`suffix' = 0 if `n'`suffix' == .
+		qui replace `w1'`suffix' = 0 if `n'`suffix' == 0
 	}
 	tempfile temp1
 	qui save `temp1'
@@ -99,7 +98,6 @@ program define topdecompose
 		di as error "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
 		exit 198
 	}
-	qui replace `time' = `time' - 1
 	qui rename `w1'minP1 `q1'
 	qui keep `time' `q1'
 	qui sum `time'
@@ -111,17 +109,17 @@ program define topdecompose
 	qui gen `n'P0 = `n'P0minusD + `n'D
 	cap assert `n'P0 > 0
 	if _rc{
-		di as error "There are periods without any individuals in the top"
+		di as error "The average cannot be computed because there are periods with no individual in the top."
 		exit 198
 	}
 	qui gen `w0'P0 = (`n'P0minusD * `w0'P0minusD + `n'D * `w0'D) / `n'P0
-	qui gen `n'P1 = `n'P1capP0 + `n'E + `n'B
-	qui gen `w1'P1 = (`n'P1capP0 * `w1'P1capP0 + `n'E * `w1'E + `n'B * `w1'B) / `n'P1
-	qui gen `w1'P0minusD = (`n'X * `w1'X  + `n'P1capP0 * `w1'P1capP0) / (`n'X + `n'P1capP0)
+	qui gen `n'P1 = `n'P1capP0 + `n'I + `n'B
+	qui gen `w1'P1 = (`n'P1capP0 * `w1'P1capP0 + `n'I * `w1'I + `n'B * `w1'B) / `n'P1
+	qui gen `w1'P0minusD = (`n'O * `w1'O  + `n'P1capP0 * `w1'P1capP0) / (`n'O + `n'P1capP0)
 	qui gen `prefix'total = `w1'P1 / `w0'P0 - 1
 	qui gen `prefix'within = `w1'P0minusD / `w0'P0minusD - 1
-	qui gen `prefix'inflow = `n'E / `n'P1 * (`w1'E - `q1') / `w0'P0
-	qui gen `prefix'outflow = `n'X / `n'P1 * (`q1' - `w1'X) / `w0'P0
+	qui gen `prefix'inflow = `n'I / `n'P1 * (`w1'I - `q1') / `w0'P0
+	qui gen `prefix'outflow = `n'O / `n'P1 * (`q1' - `w1'O) / `w0'P0
 	qui gen `prefix'birth = `n'B / `n'P1 * (`w1'B - `q1') / `w0'P0
 	qui gen `prefix'death = `n'D / `n'P1 * (`q1' - (`w1'P0minusD / `w0'P0minusD) * `w0'D) / `w0'P0
 	qui gen `prefix'popgrowth = (`n'P1 - `n'P0) / `n'P1 * (`q1' - (`w1'P0minusD / `w0'P0minusD) * `w0'P0) / `w0'P0
@@ -145,7 +143,7 @@ program define topdecompose
 			qui rename `w0'`suffix'  w0_`suffix'
 			qui rename `n'`suffix'  n_`suffix'
 		}
-		foreach suffix in E X B P1{
+		foreach suffix in I O B P1{
 			qui rename `w1'`suffix' w1_`suffix'
 			qui rename `n'`suffix' n_`suffix'
 		}

@@ -1,4 +1,4 @@
-This package provides a command to decompose the growth of an average quantity in a top percentile (in particular, the average wealth). This follows the decomposition in  *Decomposing the Growth of Top Wealth Shares* by Matthieu Gomez
+This package provides a command to decompose the growth of an average quantity in a top percentile (in particular, the average wealth). This implements the accountiong framework defined in [Decomposing the Growth of Top Wealth Shares](https://www.matthieugomez.com/files/topshares.pdf) by Matthieu Gomez
 
 ```
 topdecompose varname  [,  top(dummyvariable) save(filename) replace clear Detail]
@@ -9,9 +9,6 @@ where
 - `filename` a filepath to save the output as a dataset. Alternatively, `clear` to replace the existing dataset
 - `Detail` provides more intermediary quantities (e.g. average quantity in subsets of individuals)
 
-# References
-
-Matthieu Gomez *Decomposing the Growth of Top Wealth Shares*. Working Paper
 
 # Installation
 

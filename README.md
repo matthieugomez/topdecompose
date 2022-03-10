@@ -6,7 +6,7 @@ topdecompose varname  [,  top(dummyvariable) save(filename) replace clear Detail
 where 
 - `varname` is the variable to decompose
 - `top` is a dummy variable indicating whether the observation belongs to the top percentile or not
-- `filename` a filepath to save the output as a dataset. Alternatively, `clear` to replace the existing dataset
+- `filename` a filepath to save the output as a dataset. Alternatively, `clear` to clear the existing dataset with the output.
 - `Detail` provides more intermediary quantities (e.g. average quantity in subsets of individuals)
 
 

@@ -1,5 +1,5 @@
 program define topdecompose
-	syntax varlist(max=1 numeric), [top(varname numeric) save(string) prefix(string) replace clear Detail]
+	syntax varlist(max=1 numeric), [top(varname numeric) prefix(string) save(string) replace clear Detail]
 
 
 	/* 0: Check Inputs */

@@ -1,5 +1,5 @@
 program define topdecompose
-	syntax varlist(max=1 numeric), [Percentile(numlist >0 <=100) TOPindicator(varname numeric) save(string) prefix(string) replace clear Detail]
+	syntax varlist(max=1 numeric), [top(varname numeric) save(string) prefix(string) replace clear Detail]
 
 
 	/* 0: Check Inputs */
@@ -24,24 +24,14 @@ program define topdecompose
 		exit 198
 	}
 
-	if "`percentile'" != ""{
-		cap assert "`topindicator'" == ""
-		if _rc{
-			di as error "You cannot specify both percentile and topindicator"
-		}
-		marksample touse
-		tempvar topindicator
-		bys `touse' `time'  (`varlist'): gen byte `topindicator' = _n >= `percentile' / 100 * _N if `touse' == 1
-		tsset `id' `time'
-	}
 
-	cap assert inlist(`topindicator', 0 , 1, .)
+	cap assert inlist(`top', 0 , 1, .)
 	if _rc{
-		di as error "The dummy variable `topindicator', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
+		di as error "The dummy variable `top', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
 		exit 198
 	}
 
-	cap assert `varlist' != .  if ((`topindicator' == 1) | (L.`topindicator' == 1))
+	cap assert `varlist' != .  if ((`top' == 1) | (L.`top' == 1))
 	if _rc{
 		di as error "Missing values for `varlist' are not allowed if the individual is in the top percentile this period or the previous period."
 		exit 198
@@ -55,8 +45,8 @@ program define topdecompose
 	tempvar set n w0 w1 q1
 
 	/* 1: Decomposing average at P0 */
-	qui gen `set' = "P0minusD" if `topindicator' == 1 & F.`topindicator' != .
-	qui replace `set' = "D" if `topindicator' == 1 & F.`topindicator' == .
+	qui gen `set' = "P0minusD" if `top' == 1 & F.`top' != .
+	qui replace `set' = "D" if `top' == 1 & F.`top' == .
 	qui drop if missing(`set')
 	tempvar 
 	qui collapse (count) `n' = `varlist' (mean) `w0' = `varlist', by(`time' `set')
@@ -76,10 +66,10 @@ program define topdecompose
 
 	/* 2: Decomposing average at P1 */
 	qui use `temp', clear
-	qui gen `set' = "P1capP0" if `topindicator' == 1 & L.`topindicator' == 1
-	qui replace `set' = "E" if `topindicator' == 1 & L.`topindicator' == 0
-	qui replace `set' = "B" if `topindicator' == 1 & L.`topindicator' == .
-	qui replace `set' = "X" if `topindicator' == 0 & L.`topindicator' == 1
+	qui gen `set' = "P1capP0" if `top' == 1 & L.`top' == 1
+	qui replace `set' = "E" if `top' == 1 & L.`top' == 0
+	qui replace `set' = "B" if `top' == 1 & L.`top' == .
+	qui replace `set' = "X" if `top' == 0 & L.`top' == 1
 	qui drop if missing(`set')
 	qui collapse (count) `n' = `varlist' (mean) `w1' = `varlist', by(`time' `set')
 	qui reshape wide `n' `w1', i(`time') j(`set') string
@@ -99,8 +89,8 @@ program define topdecompose
 
 	/* 3: Compute quantile q1 */	
 	qui use `temp', clear
-	qui gen `set' = "P1" if `topindicator' == 1
-	qui replace `set' = "notP1" if `topindicator' == 0
+	qui gen `set' = "P1" if `top' == 1
+	qui replace `set' = "notP1" if `top' == 0
 	qui drop if missing(`set')
 	qui collapse  (min) `w1'min = `varlist' (max) `w1'max = `varlist', by(`time' `set')
 	qui reshape wide `w1'min `w1'max, i(`time') j(`set') string

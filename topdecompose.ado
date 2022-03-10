@@ -129,7 +129,7 @@ program define topdecompose
 	/* 5: test terms sum to total */
 	cap assert abs(`prefix'total - (`prefix'within + `prefix'between + `prefix'demography)) < 1e-6
 	if _rc{
-		di as error "Terms do not sum to the growth of the average wealth in the top percentile. This should never happen: please file an issue at https://github.com/matthieugomez/Decomposing-the-growth-of-top-wealth-shares"
+		di as error "Terms do not sum to the growth of the average wealth in the top percentile. This should never happen: please file an issue at https://github.com/matthieugomez/topdecompose"
 		exit 198
 	}
 

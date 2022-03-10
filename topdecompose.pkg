@@ -1,6 +1,6 @@
 v 0.1
 
-d growthpercentile. decompose the growth of top shares
+d topdecompose. decompose the growth of an average quantity in a top percentile
 d
 d Author: Matthieu Gomez
 d
@@ -11,5 +11,5 @@ d Requires: Stata version 11.2
 d
 d Distribution-Date: 20210101
 d
-f growthpercentile.ado
-f growthpercentile.sthlp
+f topdecompose.ado
+f topdecompose.sthlp

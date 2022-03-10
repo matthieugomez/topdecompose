@@ -25,7 +25,7 @@
 {title:Description}
 
 {pstd}
-The command decomposes the growth of the average {varname} in a top percentile group. It returns the total growth of the average variable as well as its decomposition into a within, inflow, outflow, birth, death, and population growth terms. The original dataset must be in a panel form ({help tsset}). 
+The command decomposes the growth of the average {varname} in a top percentile group. It returns the total growth of the average variable as well as its decomposition into a within, between (inflow and outflow), and demography (birth, death, and population growth) terms. The original dataset must be in a panel form ({help tsset}). 
 
 
 {marker options}{...}

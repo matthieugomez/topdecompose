@@ -9,7 +9,7 @@ where
 - `filename` a filepath to save the output as a dataset. Alternatively, `clear` to clear the existing dataset with the output.
 - `Detail` provides more intermediary quantities (e.g. average quantity in subsets of individuals)
 
-
+The dataset needs to be declared as panel data before the command (using `tsset` or `xtsset`)
 # Installation
 
 ```

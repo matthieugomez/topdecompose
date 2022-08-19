@@ -30,9 +30,16 @@ program define topdecompose
 		exit 198
 	}
 
-	cap assert `varlist' != .  if ((`top' == 1) | (L.`top' == 1))
+	cap assert `varlist' != .  if `top' == 1
 	if _rc{
-		di as error "Missing values for `varlist' are not allowed if the individual is in the top percentile this period or the previous period."
+		di as error `"The variable "`varlist'" must not be missing for an individual in the top"'
+		exit 198
+	}
+
+
+	cap assert `varlist' != .  if  (L.`top' == 1) & !missing(`top')
+	if _rc{
+		di as error `"The variable "`varlist'" must not be missing for an individual in the economy that was in the top in the previous period"'
 		exit 198
 	}
 
@@ -93,10 +100,15 @@ program define topdecompose
 	qui drop if missing(`set')
 	qui collapse  (min) `w1'min = `varlist' (max) `w1'max = `varlist', by(`time' `set')
 	qui reshape wide `w1'min `w1'max, i(`time') j(`set') string
-	cap assert `w1'minP1 >= `w1'maxnotP1 - 1
-	if _rc{
-		di as error "Some individuals outside the top have a value for `varlist' higher than the minimum value in the top"
-		exit 198
+
+	* case where top = 1 for everyone
+	cap confirm variable `w1'maxnotP1 
+	if !_rc{
+		cap assert (`w1'minP1 >= `w1'maxnotP1 - 1)
+		if _rc{
+			di as error `"The variable "`varlist'" should have a lower value for individuals out of the top  (i.e. with "`top' == 0") than for individuals in the top (i.e. with "`top' == 1")"'
+			exit 198
+		}
 	}
 	qui rename `w1'minP1 `q1'
 	qui keep `time' `q1'
@@ -109,7 +121,7 @@ program define topdecompose
 	qui gen `n'P0 = `n'P0minusD + `n'D
 	cap assert `n'P0 > 0
 	if _rc{
-		di as error "The average cannot be computed because there are periods with no individual in the top."
+		di as error `"There should always be at least one individual in the top (i.e. with "`top' == 1")"'
 		exit 198
 	}
 	qui gen `w0'P0 = (`n'P0minusD * `w0'P0minusD + `n'D * `w0'D) / `n'P0

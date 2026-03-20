@@ -3,18 +3,14 @@
 This Stata command implements the decomposition from Gomez (["Decomposing the Growth of Top Wealth Shares"](https://doi.org/10.3982/ECTA21396), *Econometrica*, 2024). It decomposes the growth of average wealth in a top percentile into three terms:
 
 - **Within** — the wealth growth of individuals initially in the top percentile, whether or not they remain in the top
-- **Between** — composition changes as individuals move into and out of the top percentile
+- **Between** — composition changes as individuals move into and out of the top percentile (because of changes in rankings)
 - **Demography** — composition changes from individuals entering and exiting the economy (births, deaths, and population growth)
 
 The decomposition is exact: **total = within + between + demography**.
 
 ## How it works
 
-Suppose you have an unbalanced panel dataset tracking the wealth of individuals over time. Depending on which top percentile you are interested in (e.g., the top 1%), you assign a variable `top` equal to 1 if the individual is in the top percentile, 0 if the individual is below the top, or missing if the individual is not in the economy. The program classifies each individual into one of five groups based on their `top` status across consecutive periods:
-
-<p align="center">
-  <img src="figure/classification.png" width="500">
-</p>
+Consider an unbalanced panel of individuals observed over multiple periods. For a given top percentile of the wealth distribution (e.g., the top 1%), let `top` equal 1 for individuals in the top percentile, 0 for those below, and missing for those not in the economy (e.g., deceased or not yet born). The idea of the decomposition is to classify each individual into one of five groups based on their `top` status across consecutive periods:
 
 - **Stayer**: in the top in both periods (`top` goes from 1 to 1)
 - **Outflow**: drops out of the top (`top` goes from 1 to 0)
@@ -22,11 +18,17 @@ Suppose you have an unbalanced panel dataset tracking the wealth of individuals 
 - **Death**: in the top, then exits the economy (`top` goes from 1 to `.`)
 - **Birth**: enters the economy into the top (`top` goes from `.` to 1)
 
-An individual is considered "not in the economy" when the program cannot find a value of `top` equal to 0 or 1 for that individual at that time. This happens in two cases: either the individual has no observation in the panel for that period, or the individual has an observation but `top` is set to missing (`.`). Both formats are accepted and treated identically.
+The following table illustrates how a panel dataset maps to this classification:
 
-These five groups generate the three decomposition terms: Stayers determine the **within** term. Inflows and outflows determine the **between** term, which is always non-negative since only individuals with sufficiently high wealth growth enter the top. Births, deaths, and population growth determine the **demography** term.
+<p align="center">
+  <img src="figure/classification.png" width="500">
+</p>
 
-When wealth is normalized by mean wealth in the economy, the decomposition applies to the growth of the top wealth *share* (see paper for details).
+The **between** term captures the effect of composition changes due to inflows and outflows on the average wealth in the top percentile. THe **demography** term captures the effect of composition changes due to birth and death.
+
+**Note 1:** An individual is considered "not in the economy" when `top` is neither 0 nor 1 for that individual at that time. This happens in two cases: either the individual has no observation in the panel for that period, or the individual has an observation but `top` is set to missing (`.`). Both formats are accepted and treated identically.
+
+**Note 2:** When wealth is normalized by mean wealth in the economy, the decomposition applies to the growth of the top wealth *share* (see paper for details).
 
 ## Syntax
 
@@ -69,7 +71,7 @@ With the `detail` option, the output additionally includes the number of observa
 
 ## Example: Forbes 400
 
-The `example/` folder contains a worked example applying the decomposition to the Forbes 400, the list of the 400 wealthiest Americans published annually by Forbes (2011–2022). See [`example/example.do`](example/example.do) for the full code.
+The `example/` folder contains a worked example applying the decomposition to the Forbes 400, the list of the 400 wealthiest Americans published annually by Forbes (2011–2022).
 
 ## Installation
 

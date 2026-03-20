@@ -2,7 +2,7 @@
 
 This Stata command implements the decomposition from Gomez (["Decomposing the Growth of Top Wealth Shares"](https://doi.org/10.3982/ECTA21396), *Econometrica*, 2024). It decomposes the growth of average wealth in a top percentile into three terms:
 
-- **Within** — the wealth growth of individuals who remain in the top percentile
+- **Within** — the wealth growth of individuals initially in the top percentile, whether or not they remain in the top
 - **Between** — composition changes as individuals move into and out of the top percentile
 - **Demography** — composition changes from individuals entering and exiting the economy (births, deaths, and population growth)
 
@@ -10,7 +10,7 @@ The decomposition is exact: **total = within + between + demography**.
 
 ## How it works
 
-The program takes an unbalanced panel dataset where each individual has a variable `top` equal to 1 if in the top percentile, 0 if below the top, or missing if not in the economy. It classifies each individual into one of five groups based on their `top` status across consecutive periods:
+Suppose you have an unbalanced panel dataset tracking the wealth of individuals over time. Depending on which top percentile you are interested in (e.g., the top 1%), you assign a variable `top` equal to 1 if the individual is in the top percentile, 0 if the individual is below the top, or missing if the individual is not in the economy. The program classifies each individual into one of five groups based on their `top` status across consecutive periods:
 
 <p align="center">
   <img src="figure/classification.png" width="500">

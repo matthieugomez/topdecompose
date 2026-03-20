@@ -15,12 +15,13 @@ program define topdecompose
 	qui tsset
 	local id `r(panelvar)'
 	local time  `r(timevar)'
-	if "`id'`time'" == ""{
-		di as error "The dataset must be declaned as a panel before applying the decomposition (e.g. tsset panelvariable timevariable)"
+	if "`id'" == "" | "`time'" == ""{
+		di as error "The dataset must be declared as a panel before applying the decomposition (e.g. tsset panelvariable timevariable)"
 		exit 198
-	} 
+	}
+	local delta = r(tdelta)
 
-	if "`detail"!=""{
+	if "`detail'"!=""{
 		if inlist("`time'", "N_P"){
 			di as error "The name of the time variable will conflict with variables created in the decomposition"
 			exit 198
@@ -38,7 +39,7 @@ program define topdecompose
 
 	cap assert inlist(`top', 0 , 1, .)
 	if _rc{
-		di as error "The dummy variable `top', indicating whether an individual is in the top percentile, must only take values missing, 0 and 1."
+		di as error "The variable `top' must only take values 1 (in the top percentile), 0 (below the top percentile), or missing (not in the economy)."
 		exit 198
 	}
 
@@ -50,22 +51,24 @@ program define topdecompose
 
 	cap assert `varlist' != .  if  (L.`top' == 1) & !missing(`top')
 	if _rc{
-		di as error `"The variable "`varlist'" must not be missing for an individual in the economy that was in the top in the previous period"'
+		di as error `"The variable "`varlist'" must not be missing for an individual in the economy (with non missing top variable) that was in the top in the previous period (with lagged top variable equal to one)"'
 		exit 198
 	}
 
 
 
+	local varlabel : variable label `varlist'
+	if "`varlabel'" == "" local varlabel `varlist'
+
 	preserve
 	tempfile temp
 	qui save `temp'
-	tempvar set N w0 w1 q1
+	tempvar set N w0 w1 q0 q1
 
 	/* 1: Decomposing average at P0 */
 	qui gen `set' = "P0minusD" if `top' == 1 & F.`top' != .
 	qui replace `set' = "D" if `top' == 1 & F.`top' == .
 	qui drop if missing(`set')
-	tempvar 
 	qui collapse (count) `N' = `varlist' (mean) `w0' = `varlist', by(`time' `set')
 	qui reshape wide `N' `w0', i(`time') j(`set') string
 	* Handle the fact that, when sets are empty, variables may not exist (always empty) or be missing
@@ -78,7 +81,7 @@ program define topdecompose
 		qui replace `N'`suffix' = 0 if `N'`suffix' == .
 		qui replace `w0'`suffix' = 0 if `N'`suffix' == 0
 	}
-	qui replace `time' = `time' + 1
+	qui replace `time' = `time' + `delta'
 	tempfile temp0
 	qui save `temp0'
 
@@ -104,7 +107,7 @@ program define topdecompose
 	tempfile temp1
 	qui save `temp1'
 
-	/* 3: Compute quantile q1 */	
+	/* 3: Compute quantiles q0 and q1 */
 	qui use `temp', clear
 	qui gen `set' = "P1" if `top' == 1
 	qui replace `set' = "notP1" if `top' == 0
@@ -113,9 +116,9 @@ program define topdecompose
 	qui reshape wide `w1'min `w1'max, i(`time') j(`set') string
 
 	* case where top = 1 for everyone
-	cap confirm variable `w1'maxnotP1 
+	cap confirm variable `w1'maxnotP1
 	if !_rc{
-		cap assert (`w1'minP1 >= `w1'maxnotP1 - 1)
+		cap assert `w1'minP1 >= `w1'maxnotP1 if !missing(`w1'maxnotP1)
 		if _rc{
 			di as error `"The variable "`varlist'" should have a lower value for individuals out of the top  (i.e. with "`top' == 0") than for individuals in the top (i.e. with "`top' == 1")"'
 			exit 198
@@ -123,8 +126,19 @@ program define topdecompose
 	}
 	qui rename `w1'minP1 `q1'
 	qui keep `time' `q1'
+	* Save copy to compute q0 (threshold at previous period)
+	tempfile tempq
+	qui save `tempq'
+	qui rename `q1' `q0'
+	qui replace `time' = `time' + `delta'
+	tempfile tempq0
+	qui save `tempq0'
+	* Reload and keep q1 (threshold at current period)
+	qui use `tempq', clear
 	qui sum `time'
 	qui drop if `time' == r(min)
+	* Merge q0
+	qui merge 1:1 `time' using `tempq0', keep(master matched) nogen
 
 	/* 4: combine everything together */
 	qui merge 1:1 `time' using `temp0', keep(master matched) nogen
@@ -156,10 +170,22 @@ program define topdecompose
 		exit 198
 	}
 
-	gen `time'0 = `time' - 1
+	gen `time'0 = `time' - `delta'
 	gen `time'1 = `time'
 
-	/* 6: return results */
+	/* 6: label and return results */
+	label variable `time'0 "Start of period"
+	label variable `time'1 "End of period"
+	label variable `prefix'total "Total growth"
+	label variable `prefix'within "Within component"
+	label variable `prefix'between "Between component (inflow + outflow)"
+	label variable `prefix'inflow "Inflow component"
+	label variable `prefix'outflow "Outflow component"
+	label variable `prefix'demography "Demography component (birth + death + popgrowth)"
+	label variable `prefix'birth "Birth component"
+	label variable `prefix'death "Death component"
+	label variable `prefix'popgrowth "Population growth component"
+
 	if "`detail'" == ""{
 		qui keep `time'0 `time'1 `prefix'total `prefix'within `prefix'between `prefix'inflow `prefix'outflow `prefix'demography  `prefix'birth `prefix'death `prefix'popgrowth
 		qui order `time'0 `time'1 `prefix'total `prefix'within `prefix'between `prefix'inflow `prefix'outflow  `prefix'demography `prefix'birth `prefix'death `prefix'popgrowth
@@ -173,9 +199,24 @@ program define topdecompose
 			qui rename `w1'`suffix' w1_`suffix'
 			qui rename `N'`suffix' N_`suffix'
 		}
+		qui rename `q0' q0
 		qui rename `q1' q1
-		qui keep `time'0 `time'1 `prefix'total `prefix'within `prefix'between `prefix'inflow `prefix'outflow `prefix'demography  `prefix'birth `prefix'death `prefix'popgrowth N_P0 w0_P0 N_I w1_I N_O w1_O N_B w1_B N_D w0_D N_P1 w1_P1 q1
-		qui order `time'0 `time'1 `prefix'total `prefix'within `prefix'between `prefix'inflow `prefix'outflow `prefix'demography  `prefix'birth `prefix'death `prefix'popgrowth N_P0 w0_P0 N_I w1_I N_O w1_O N_B w1_B N_D w0_D N_P1 w1_P1 q1
+		label variable N_P0 "Number in top at t=0"
+		label variable N_P1 "Number in top at t=1"
+		label variable N_I "Number of inflows"
+		label variable N_O "Number of outflows"
+		label variable N_B "Number of births"
+		label variable N_D "Number of deaths"
+		label variable w0_P0 "Average `varlabel' in top at t=0"
+		label variable w1_P1 "Average `varlabel' in top at t=1"
+		label variable w1_I "Average `varlabel' at t=1 for inflows"
+		label variable w1_O "Average `varlabel' at t=1 for outflows"
+		label variable w1_B "Average `varlabel' at t=1 for births"
+		label variable w0_D "Average `varlabel' at t=0 for deaths"
+		label variable q0 "Percentile threshold at t=0"
+		label variable q1 "Percentile threshold at t=1"
+		qui keep `time'0 `time'1 `prefix'total `prefix'within `prefix'between `prefix'inflow `prefix'outflow `prefix'demography  `prefix'birth `prefix'death `prefix'popgrowth N_P0 w0_P0 N_I w1_I N_O w1_O N_B w1_B N_D w0_D N_P1 w1_P1 q0 q1
+		qui order `time'0 `time'1 `prefix'total `prefix'within `prefix'between `prefix'inflow `prefix'outflow `prefix'demography  `prefix'birth `prefix'death `prefix'popgrowth N_P0 w0_P0 N_I w1_I N_O w1_O N_B w1_B N_D w0_D N_P1 w1_P1 q0 q1
 	}
 	if "`save'" != ""{
 		qui save `save', `replace'

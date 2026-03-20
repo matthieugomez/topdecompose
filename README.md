@@ -1,10 +1,16 @@
 # topdecompose
 
-Suppose you have an unbalanced panel dataset of individuals, each observed over multiple years. Every year, individuals are ranked with respect to some variable — say, wealth — and you assign a variable `top` equal to 1 if the individual is in a top percentile (e.g., the top 1%), 0 if the individual is in the economy but not in the top, and missing if the individual is not in the economy (or simply not observed in the panel that year).
+This Stata command implements the decomposition from Gomez (["Decomposing the Growth of Top Wealth Shares"](https://doi.org/10.3982/ECTA21396), *Econometrica*, 2024). It decomposes the growth of average wealth in a top percentile into three terms:
 
-The average wealth in the top percentile changes over time. But why? Is it because individuals who stay in the top are getting richer (*within*)? Because high-wealth individuals are moving into the top while low-wealth individuals drop out (*between*)? Or because of demographic turnover — births, deaths, and population growth (*demography*)?
+- **Within** — the wealth growth of individuals who remain in the top percentile
+- **Between** — composition changes as individuals move into and out of the top percentile
+- **Demography** — composition changes from individuals entering and exiting the economy (births, deaths, and population growth)
 
-This Stata command answers these questions. It decomposes the growth of average wealth in the top percentile into interpretable components, by classifying each individual into one of five mutually exclusive groups based on their `top` status across consecutive periods:
+The decomposition is exact: **total = within + between + demography**.
+
+## How it works
+
+The program takes an unbalanced panel dataset where each individual has a variable `top` equal to 1 if in the top percentile, 0 if below the top, or missing if not in the economy. It classifies each individual into one of five groups based on their `top` status across consecutive periods:
 
 <p align="center">
   <img src="figure/classification.png" width="500">
@@ -18,39 +24,11 @@ This Stata command answers these questions. It decomposes the growth of average 
 
 An individual is considered "not in the economy" when the program cannot find a value of `top` equal to 0 or 1 for that individual at that time. This happens in two cases: either the individual has no observation in the panel for that period, or the individual has an observation but `top` is set to missing (`.`). Both formats are accepted and treated identically.
 
-These five groups generate an exact decomposition into three terms:
+These five groups generate the three decomposition terms: Stayers determine the **within** term. Inflows and outflows determine the **between** term, which is always non-negative since only individuals with sufficiently high wealth growth enter the top. Births, deaths, and population growth determine the **demography** term.
 
-- **Within** — how much would average wealth in the top have grown if nobody moved in or out? This captures the wealth growth of individuals initially in the top (excluding deaths).
-- **Between** = Inflow + Outflow — how much do composition changes among existing individuals contribute? Individuals with high wealth growth enter the top, while those with low wealth growth drop out. This term is always non-negative.
-- **Demography** = Birth + Death + Population Growth — how much does demographic turnover contribute? This captures individuals entering or exiting the economy.
+When wealth is normalized by mean wealth in the economy, the decomposition applies to the growth of the top wealth *share* (see paper for details).
 
-The decomposition is exact: **total = within + between + demography**.
-
-When wealth is normalized by mean wealth in the economy, this decomposition applies to the growth of the top wealth *share*. For a formal derivation, see [Decomposing the Growth of Top Wealth Shares](https://www.matthieugomez.com/files/topshares.pdf) (Gomez, *Econometrica*, 2024).
-
-## Usage
-
-The dataset must be declared as panel data (using `tsset`). Here is a minimal example:
-
-```stata
-* Create a panel of 100 individuals over 2 years
-set obs 100
-gen id = _n
-expand 2
-bys id: gen year = _n - 1
-drop if runiform() <= 0.1
-gen wealth = runiform()
-
-* Define the top 10%
-bys year (wealth): gen top = _n >= 0.9 * _N
-
-* Run the decomposition
-tsset id year
-topdecompose wealth, top(top) clear
-list
-```
-
-### Syntax
+## Syntax
 
 ```stata
 topdecompose varname, top(dummyvar) {save(filename) [replace] | clear} [prefix(string) detail]
@@ -68,7 +46,9 @@ topdecompose varname, top(dummyvar) {save(filename) [replace] | clear} [prefix(s
 - `prefix(string)` — prefix for output variable names (e.g., `prefix(w_)` produces `w_total`, `w_within`, etc.)
 - `detail` — additionally return the number of observations in each group, the average wealth in each group, and the percentile thresholds
 
-### Output
+The dataset must be declared as panel data before running the command (using `tsset`).
+
+## Output
 
 The command produces a dataset with one row per transition period containing:
 

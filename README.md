@@ -71,7 +71,7 @@ With the `detail` option, the output additionally includes the number of observa
 
 ## Example: Forbes 400
 
-The `example/` folder contains a worked example applying the decomposition to the Forbes 400, the list of the 400 wealthiest Americans published annually by Forbes (2011–2022).
+The `example/` folder contains a worked example applying the decomposition to the Forbes 400, the list of the 400 wealthiest Americans published annually by Forbes from 2011 to 2017.
 
 ## Installation
 

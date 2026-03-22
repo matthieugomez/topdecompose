@@ -24,7 +24,7 @@ The following table illustrates how a panel dataset maps to this classification:
   <img src="figure/classification.png" width="500">
 </p>
 
-The **between** term captures the effect of composition changes due to inflows and outflows on the average wealth in the top percentile. THe **demography** term captures the effect of composition changes due to birth and death.
+The **between** term captures the effect of composition changes due to inflows and outflows on the average wealth in the top percentile. The **demography** term captures the effect of composition changes due to birth and death.
 
 **Note 1:** An individual is considered "not in the economy" when `top` is neither 0 nor 1 for that individual at that time. This happens in two cases: either the individual has no observation in the panel for that period, or the individual has an observation but `top` is set to missing (`.`). Both formats are accepted and treated identically.
 
@@ -56,7 +56,7 @@ The command produces a dataset with one row per transition period containing:
 
 | Variable | Description |
 |----------|-------------|
-| `year0`, `year1` | Start and end of the period |
+| `{timevar}0`, `{timevar}1` | Start and end of the period |
 | `total` | Total growth of average wealth in the top percentile |
 | `within` | Within component |
 | `between` | Between component (= `inflow` + `outflow`) |

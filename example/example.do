@@ -45,7 +45,7 @@ di _newline "=== BIRTH (no observation in 2011, top=1 in 2012) ==="
 list name networth if year == 2012 & top == 1 & L.top == ., noobs
 
 * -----------------------------------------------------------------------------
-* Run the decomposition for the average welath in Forbes 400
+* Run the decomposition for the average wealth in Forbes 400
 * Note that, since the Forbes 400 always contains exactly 400 individuals,
 * the population growth term is always zero.
 * -----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-* version 2.0, March 2028
+* version 2.1.0, March 2026
 * 1. Instead of returning only the time variable at period 1, return it at both period 0 (with
 *    suffix 0) and period 1 (with suffix 1), to make the start and end times more obvious.
 * 2. When using the details option, use uppercase for group sizes (e.g., N0) since n is used to denote 
@@ -9,10 +9,15 @@
 
 
 program define topdecompose
-	syntax varlist(max=1 numeric), [top(varname numeric) prefix(string) save(string) replace clear Detail]
+	version 11.2
+	syntax varlist(max=1 numeric), top(varname numeric) [prefix(string) save(string) replace clear Detail]
 
 	/* 0: Check Inputs */
-	qui tsset
+	cap qui tsset
+	if _rc{
+		di as error "The dataset must be declared as a panel before applying the decomposition (e.g. tsset panelvariable timevariable)"
+		exit 198
+	}
 	local id = r(panelvar)
 	local time = r(timevar)
 	local delta = r(tdelta)
@@ -60,10 +65,7 @@ program define topdecompose
 
 	local varlabel : variable label `varlist'
 	if "`varlabel'" == "" local varlabel `varlist'
-
-	preserve
-	tempfile temp
-	qui save `temp'
+	
 	tempvar set N w0 w1 q0 q1
 
 	/* 1: Forward-looking pass at time t: decompose P0 into P0\D and D */
@@ -71,6 +73,7 @@ program define topdecompose
 	* whether they survive to t+1 (P0\D: F.top != .) or exit the economy (D: F.top == .)
 	* Computes N and w0 (= mean wealth at t) for each group.
 	* Time is then shifted by +delta so results are indexed at t+1 (= end of period).
+	preserve
 	qui gen `set' = "P0minusD" if `top' == 1 & F.`top' != .
 	qui replace `set' = "D" if `top' == 1 & F.`top' == .
 	qui drop if missing(`set')
@@ -99,6 +102,7 @@ program define topdecompose
 	}
 	tempfile temp0
 	qui save `temp0'
+	restore
 
 	/* 2: Backward-looking pass at time t: decompose P1 using L.top */
 	* For each individual, use L.top to classify their transition into the top:
@@ -107,7 +111,7 @@ program define topdecompose
 	*   B (birth):        not in economy at t-1, in top at t (L.top==., top==1)
 	*   O (outflow):      in top at t-1, not in top at t (L.top==1, top==0)
 	* Computes N and w1 (= mean wealth at t) for each group.
-	qui use `temp', clear
+	preserve
 	qui gen `set' = "P1capP0" if `top' == 1 & L.`top' == 1
 	qui replace `set' = "I" if `top' == 1 & L.`top' == 0
 	qui replace `set' = "B" if `top' == 1 & L.`top' == .
@@ -127,9 +131,10 @@ program define topdecompose
 	}
 	tempfile temp1
 	qui save `temp1'
+	restore
 
 	/* 3: Compute quantiles q0 and q1 */
-	qui use `temp', clear
+	preserve
 	qui gen `set' = "P1" if `top' == 1
 	qui replace `set' = "notP1" if `top' == 0
 	qui drop if missing(`set')
@@ -148,20 +153,18 @@ program define topdecompose
 	qui rename `w1'minP1 `q1'
 	qui keep `time' `q1'
 	* Save copy to compute q0 (threshold start-of-period)
-	tempfile tempq
-	qui save `tempq'
+	tempfile tempq1
+	qui save `tempq1'
 	qui rename `q1' `q0'
 	qui replace `time' = `time' + `delta'
 	tempfile tempq0
 	qui save `tempq0'
 	* Reload and keep q1 (threshold end-of-period)
-	qui use `tempq', clear
+	qui use `tempq1', clear
 	qui sum `time'
 	qui drop if `time' == r(min)
-	* Merge q0
+	* Merge all datasets created
 	qui merge 1:1 `time' using `tempq0', keep(master matched) nogen
-
-	/* 4: combine everything together */
 	qui merge 1:1 `time' using `temp0', keep(master matched) nogen
 	qui merge 1:1 `time' using `temp1', keep(master matched) nogen
 	qui gen `N'P0 = `N'P0minusD + `N'D
@@ -169,6 +172,16 @@ program define topdecompose
 	qui gen `N'P1 = `N'P1capP0 + `N'I + `N'B
 	qui gen `w1'P1 = (`N'P1capP0 * `w1'P1capP0 + `N'I * `w1'I + `N'B * `w1'B) / `N'P1
 	qui gen `w1'P0minusD = (`N'O * `w1'O  + `N'P1capP0 * `w1'P1capP0) / (`N'O + `N'P1capP0)
+	cap assert `w0'P0 > 0
+	if _rc{
+		di as error "Average `varlist' in the top percentile is zero in some period; the decomposition requires a nonzero denominator"
+		exit 198
+	}
+	cap assert `w0'P0minusD > 0
+	if _rc{
+		di as error "Average `varlist' for surviving top-percentile individuals is zero in some period; the decomposition requires a nonzero denominator"
+		exit 198
+	}
 	qui gen `prefix'total = `w1'P1 / `w0'P0 - 1
 	qui gen `prefix'within = `w1'P0minusD / `w0'P0minusD - 1
 	qui gen `prefix'inflow = `N'I / `N'P1 * (`w1'I - `q1') / `w0'P0

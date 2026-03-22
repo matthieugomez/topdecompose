@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 2.0 March 2028}{...}
+{* *! version 2.1.0 March 2026}{...}
 {viewerjumpto "Syntax" "topdecompose##syntax"}{...}
 {viewerjumpto "Description" "topdecompose##description"}{...}
 {viewerjumpto "Options" "topdecompose##options"}{...}

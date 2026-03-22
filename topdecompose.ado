@@ -13,13 +13,15 @@ program define topdecompose
 
 	/* 0: Check Inputs */
 	qui tsset
-	local id `r(panelvar)'
-	local time  `r(timevar)'
+	local id = r(panelvar)
+	local time = r(timevar)
+	local delta = r(tdelta)
+	qui sum `time'
+	local timemax = r(max)
 	if "`id'" == "" | "`time'" == ""{
 		di as error "The dataset must be declared as a panel before applying the decomposition (e.g. tsset panelvariable timevariable)"
 		exit 198
 	}
-	local delta = r(tdelta)
 
 	if "`detail'"!=""{
 		if inlist("`time'", "N_P"){
@@ -39,22 +41,21 @@ program define topdecompose
 
 	cap assert inlist(`top', 0 , 1, .)
 	if _rc{
-		di as error "The variable `top' must only take values 1 (in the top percentile), 0 (below the top percentile), or missing (not in the economy)."
+		di as error "`top' must only take values 1 (in the top), 0 (in the economy but not in the top), or missing (not in the economy)"
 		exit 198
 	}
 
 	cap assert `varlist' != .  if `top' == 1
 	if _rc{
-		di as error `"The variable "`varlist'" must not be missing for an individual in the top"'
+		di as error `"`varlist' must not be missing when `top' == 1 (i.e. for individuals in the top)"'
 		exit 198
 	}
 
 	cap assert `varlist' != .  if  (L.`top' == 1) & !missing(`top')
 	if _rc{
-		di as error `"The variable "`varlist'" must not be missing for an individual in the economy (with non missing top variable) that was in the top in the previous period (with lagged top variable equal to one)"'
+		di as error `"`varlist' must not be missing when L.`top' == 1 & `top' != . (i.e. for individuals still in the economy who were in the top in the previous period)"'
 		exit 198
 	}
-
 
 
 	local varlabel : variable label `varlist'
@@ -65,7 +66,11 @@ program define topdecompose
 	qui save `temp'
 	tempvar set N w0 w1 q0 q1
 
-	/* 1: Decomposing average at P0 */
+	/* 1: Forward-looking pass at time t: decompose P0 into P0\D and D */
+	* For each individual in the top at time t (top==1), use F.top to determine
+	* whether they survive to t+1 (P0\D: F.top != .) or exit the economy (D: F.top == .)
+	* Computes N and w0 (= mean wealth at t) for each group.
+	* Time is then shifted by +delta so results are indexed at t+1 (= end of period).
 	qui gen `set' = "P0minusD" if `top' == 1 & F.`top' != .
 	qui replace `set' = "D" if `top' == 1 & F.`top' == .
 	qui drop if missing(`set')
@@ -82,10 +87,26 @@ program define topdecompose
 		qui replace `w0'`suffix' = 0 if `N'`suffix' == 0
 	}
 	qui replace `time' = `time' + `delta'
+	cap assert `N'P0minusD + `N'D > 0
+	if _rc{
+		di as error `"In each period, at least one individual must be in the top group (i.e. with `top' == 1)"'
+		exit 198
+	}
+	cap assert `N'P0minusD > 0 if `time' < `timemax' + `delta'
+	if _rc{
+		di as error `"In each period except the last, at least one individual with `top' == 1 must survive to the next period (i.e. have a non-missing `top' at t+1)"'
+		exit 198
+	}
 	tempfile temp0
 	qui save `temp0'
 
-	/* 2: Decomposing average at P1 */
+	/* 2: Backward-looking pass at time t: decompose P1 using L.top */
+	* For each individual, use L.top to classify their transition into the top:
+	*   P1capP0 (stayer): in top at both t-1 and t (L.top==1, top==1)
+	*   I (inflow):       not in top at t-1, in top at t (L.top==0, top==1)
+	*   B (birth):        not in economy at t-1, in top at t (L.top==., top==1)
+	*   O (outflow):      in top at t-1, not in top at t (L.top==1, top==0)
+	* Computes N and w1 (= mean wealth at t) for each group.
 	qui use `temp', clear
 	qui gen `set' = "P1capP0" if `top' == 1 & L.`top' == 1
 	qui replace `set' = "I" if `top' == 1 & L.`top' == 0
@@ -94,7 +115,7 @@ program define topdecompose
 	qui drop if missing(`set')
 	qui collapse (count) `N' = `varlist' (mean) `w1' = `varlist', by(`time' `set')
 	qui reshape wide `N' `w1', i(`time') j(`set') string
-	* Handle the fact that, when sets are empty, variables may not exist (always empty) or be missing
+	* Handle the fact that, when sets are empty, variables may not exist (empty set every period) or be missing (empty set in some periods)
 	foreach suffix in P1capP0 I B O{
 		cap confirm variable `N'`suffix'
 		if _rc{
@@ -120,20 +141,20 @@ program define topdecompose
 	if !_rc{
 		cap assert `w1'minP1 >= `w1'maxnotP1 if !missing(`w1'maxnotP1)
 		if _rc{
-			di as error `"The variable "`varlist'" should have a lower value for individuals out of the top  (i.e. with "`top' == 0") than for individuals in the top (i.e. with "`top' == 1")"'
+			di as error `"`varlist' must be weakly higher for individuals with `top' == 1 than for individuals with `top' == 0 within each value of `time'"'
 			exit 198
 		}
 	}
 	qui rename `w1'minP1 `q1'
 	qui keep `time' `q1'
-	* Save copy to compute q0 (threshold at previous period)
+	* Save copy to compute q0 (threshold start-of-period)
 	tempfile tempq
 	qui save `tempq'
 	qui rename `q1' `q0'
 	qui replace `time' = `time' + `delta'
 	tempfile tempq0
 	qui save `tempq0'
-	* Reload and keep q1 (threshold at current period)
+	* Reload and keep q1 (threshold end-of-period)
 	qui use `tempq', clear
 	qui sum `time'
 	qui drop if `time' == r(min)
@@ -144,11 +165,6 @@ program define topdecompose
 	qui merge 1:1 `time' using `temp0', keep(master matched) nogen
 	qui merge 1:1 `time' using `temp1', keep(master matched) nogen
 	qui gen `N'P0 = `N'P0minusD + `N'D
-	cap assert `N'P0 > 0
-	if _rc{
-		di as error `"There should always be at least one individual in the top (i.e. with "`top' == 1")"'
-		exit 198
-	}
 	qui gen `w0'P0 = (`N'P0minusD * `w0'P0minusD + `N'D * `w0'D) / `N'P0
 	qui gen `N'P1 = `N'P1capP0 + `N'I + `N'B
 	qui gen `w1'P1 = (`N'P1capP0 * `w1'P1capP0 + `N'I * `w1'I + `N'B * `w1'B) / `N'P1

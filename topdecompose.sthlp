@@ -187,6 +187,6 @@ Matthieu Gomez, Department of Economics, Columbia University
 {p_end}
 
 {phang}
-Please report any issue on Github:
+Please report any issue on GitHub:
 {browse "https://github.com/matthieugomez/topdecompose":https://github.com/matthieugomez/topdecompose}
 {p_end}

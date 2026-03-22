@@ -43,6 +43,10 @@ program define topdecompose
 		di as error "You need to specify either the option save(filename) or the option clear. The first saves the output in an external file while the second replaces the existing dataset."
 		exit 198
 	}
+	if "`save'" != "" & "`clear'" != ""{
+		di as error "Options save(filename) and clear are mutually exclusive; specify only one."
+		exit 198
+	}
 
 	cap assert inlist(`top', 0 , 1, .)
 	if _rc{

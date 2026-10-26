@@ -316,4 +316,28 @@ assert "`r(datasignature)'" == "`sig'"
 di "Test 11 passed"
 
 * -----------------------------------------------------------------------------
+* Test 12: save() with clear saves the output and leaves the data in memory unchanged
+* -----------------------------------------------------------------------------
+di _newline "=== Test 12: save() with clear ==="
+clear
+set seed 12345
+set obs 100
+gen id = _n
+expand 2
+bys id: gen year = 2000 + _n - 1
+gen wealth = 10 + 5 * runiform()
+bys year (wealth): gen top = _n >= 0.9 * _N
+tsset id year
+datasignature
+local sig `r(datasignature)'
+topdecompose wealth, top(top) save("/tmp/topdecompose_test.dta") replace clear
+datasignature
+assert "`r(datasignature)'" == "`sig'"
+preserve
+use "/tmp/topdecompose_test.dta", clear
+confirm variable total
+restore
+di "Test 12 passed"
+
+* -----------------------------------------------------------------------------
 di _newline "=== All tests passed ==="

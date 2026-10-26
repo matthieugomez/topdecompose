@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 2.2.0 October 2026}{...}
+{* *! version 2.2.1 October 2026}{...}
 {viewerjumpto "Syntax" "topdecompose##syntax"}{...}
 {viewerjumpto "Description" "topdecompose##description"}{...}
 {viewerjumpto "Options" "topdecompose##options"}{...}
@@ -104,8 +104,8 @@ Otherwise, the individuals who were in the top at {it:t}=0 would not have the sa
 total weight at {it:t}=0 and {it:t}=1.{p_end}
 
 {pstd}
-The command requires Stata 16 or later. It works on a copy of the variables it uses, so the
-dataset in memory is left unchanged if it stops with an error.
+The command requires Stata 11.2 or later. The dataset in memory is left unchanged if the
+command stops with an error.
 
 
 {marker options}{...}
@@ -134,7 +134,7 @@ individual who moves from one group to another exits the first group and enters 
 {synopt:{opt replace}}overwrite the file when using the {cmd:save} option.{p_end}
 
 {synopt:{opt clear}}replace the existing dataset with the decomposition output
-(alternative to {cmd:save}).{p_end}
+(alternative to {cmd:save}; specifying both is a mistake, and {cmd:clear} is then ignored with a warning).{p_end}
 
 {synopt:{cmd:prefix(}{it:string}{cmd:)}}prefix for the output variable names
 (e.g., {cmd:prefix(w_)} produces {cmd:w_total}, {cmd:w_within}, etc.).{p_end}

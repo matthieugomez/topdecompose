@@ -1,4 +1,4 @@
-v 2.2.0
+v 2.2.1
 
 d topdecompose. decompose the growth of an average quantity in a top percentile
 d
@@ -7,7 +7,7 @@ d
 d
 d KW: percentile, decompose
 d
-d Requires: Stata version 16
+d Requires: Stata version 11.2
 d
 d Distribution-Date: 20261026
 d

@@ -9,6 +9,12 @@ Two changes break scripts written for version 1:
 - The output no longer contains the time variable itself (say `year`). It contains `year0` (start of the period) and `year1` (end of the period); version 1's `year` is `year1`. To keep old code running, add `rename year1 year` after the command.
 - With `detail`, the group sizes are `N_P0`, `N_P1`, `N_I`, `N_O`, `N_B`, `N_D` instead of `n_P0`, `n_P1`, `n_I`, `n_O`, `n_B`, `n_D`.
 
+## 2.2.1 (2026-10-26)
+
+### Changed
+- Requires Stata 11.2 or later again: the computation uses `preserve` instead of a frame. Version 2.2.0 required Stata 16.
+- `save()` and `clear` are alternatives, so specifying both is a mistake. Versions before 2.2.0 silently ignored `clear`, while version 2.2.0 stopped with an error, which broke scripts that used to run. The command now displays a warning and ignores `clear`.
+
 ## 2.2.0 (2026-10-26)
 
 ### Breaking

@@ -53,7 +53,7 @@ topdecompose varname [fweight], {top(dummyvar) | top0(dummyvar) top1(dummyvar)} 
 - `detail` — additionally return the number of observations in each group, the average wealth in each group, and the percentile thresholds
 - `[fweight=w]` — an individual with weight `w` counts as `w` identical individuals (same results as duplicating each individual `w` times). The weight must be constant over time within each individual; with weights, the `N_*` variables returned by `detail` are sums of weights
 
-The dataset must be declared as panel data before running the command (using `tsset`). The command requires Stata 16 or later; it works on a copy of the variables it uses, so the dataset in memory is left unchanged if it stops with an error.
+The dataset must be declared as panel data before running the command (using `tsset`). The command requires Stata 11.2 or later. The dataset in memory is left unchanged if the command stops with an error.
 
 ## Output
 

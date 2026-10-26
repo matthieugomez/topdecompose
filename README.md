@@ -33,7 +33,7 @@ The **between** term captures the effect of composition changes due to inflows a
 ## Syntax
 
 ```stata
-topdecompose varname, top(dummyvar) {save(filename) [replace] | clear} [prefix(string) detail]
+topdecompose varname [fweight], {top(dummyvar) | top0(dummyvar) top1(dummyvar)} {save(filename) [replace] | clear} [by(varlist) prefix(string) detail]
 ```
 
 **Required arguments:**
@@ -44,11 +44,16 @@ topdecompose varname, top(dummyvar) {save(filename) [replace] | clear} [prefix(s
 - `save(filename)` — save the decomposition to an external dataset (`replace` to overwrite)
 - `clear` — replace the current dataset with the decomposition output
 
+**Alternative to `top()`:**
+- `top0(dummyvar)` and `top1(dummyvar)` — the top at `t` when `t` is the start of the period from `t` to `t+1` (`top0`), and when `t` is the end of the period from `t-1` to `t` (`top1`). Use them when the two differ, for instance when some individuals are excluded from one specific period, or when the size of the top is set period by period. `top(x)` is the same as `top0(x) top1(x)`. The values of `top0` in the last period and of `top1` in the first period are not used
+
 **Optional:**
+- `by(varlist)` — compute the decomposition separately within each group. An individual who moves from one group to another exits the first group and enters the second
 - `prefix(string)` — prefix for output variable names (e.g., `prefix(w_)` produces `w_total`, `w_within`, etc.)
 - `detail` — additionally return the number of observations in each group, the average wealth in each group, and the percentile thresholds
+- `[fweight=w]` — an individual with weight `w` counts as `w` identical individuals (same results as duplicating each individual `w` times). The weight must be constant over time within each individual; with weights, the `N_*` variables returned by `detail` are sums of weights
 
-The dataset must be declared as panel data before running the command (using `tsset`).
+The dataset must be declared as panel data before running the command (using `tsset`). The command requires Stata 16 or later; it works on a copy of the variables it uses, so the dataset in memory is left unchanged if it stops with an error.
 
 ## Output
 
@@ -56,6 +61,7 @@ The command produces a dataset with one row per transition period containing:
 
 | Variable | Description |
 |----------|-------------|
+| `{byvars}` | The `by()` variables, if specified |
 | `{timevar}0`, `{timevar}1` | Start and end of the period |
 | `total` | Total growth of average wealth in the top percentile |
 | `within` | Within component |
@@ -76,8 +82,10 @@ The `example/` folder contains a worked example applying the decomposition to th
 ## Installation
 
 ```stata
-net install topdecompose, from("https://raw.githubusercontent.com/matthieugomez/topdecompose/master/")
+net install topdecompose, from("https://raw.githubusercontent.com/matthieugomez/topdecompose/main/")
 ```
+
+See [CHANGELOG.md](CHANGELOG.md) for the changes between versions, including the breaking changes from version 1.
 
 ## References
 

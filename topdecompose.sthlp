@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 2.1.0 March 2026}{...}
+{* *! version 2.2.0 October 2026}{...}
 {viewerjumpto "Syntax" "topdecompose##syntax"}{...}
 {viewerjumpto "Description" "topdecompose##description"}{...}
 {viewerjumpto "Options" "topdecompose##options"}{...}
@@ -19,7 +19,7 @@
 {marker syntax}{...}
 {title:Syntax}
 
-{p 8 15 2} {cmd:topdecompose} {varname} {cmd:,} {cmd:top(}{it:dummyvar}{cmd:)} {{cmd:save(}{it:filename}{cmd:)} [{cmd:replace}] | {cmd:clear}} [{cmd:prefix(}{it:string}{cmd:)} {cmd:detail}]{p_end}
+{p 8 15 2} {cmd:topdecompose} {varname} [{it:{help weight:fweight}}] {cmd:,} {{cmd:top(}{it:dummyvar}{cmd:)} | {cmd:top0(}{it:dummyvar}{cmd:)} {cmd:top1(}{it:dummyvar}{cmd:)}} {{cmd:save(}{it:filename}{cmd:)} [{cmd:replace}] | {cmd:clear}} [{cmd:by(}{it:varlist}{cmd:)} {cmd:prefix(}{it:string}{cmd:)} {cmd:detail}]{p_end}
 
 
 {marker description}{...}
@@ -72,6 +72,18 @@ The decomposition is exact: {bf:total = within + between + demography}.
 When {varname} is individual wealth normalized by mean wealth in the economy, the
 decomposition applies to the growth of the top wealth {it:share}.
 
+{pstd}
+Throughout, 0 denotes the start of a period and 1 its end: the period from {it:t}-1 to {it:t}
+starts at {it:t}-1 and ends at {it:t}. By default, the top at {it:t} is the same whether {it:t} is the end of
+the period from {it:t}-1 to {it:t} or the start of the period from {it:t} to {it:t}+1. When it is not (for
+instance, when some individuals are excluded from one specific period, or when the size of the top
+is set period by period), specify the top at the start of periods with {cmd:top0()} and the top at
+the end of periods with {cmd:top1()} instead of {cmd:top()}.
+
+{pstd}
+{cmd:fweight}s are allowed: an individual with weight {it:w} counts as {it:w} identical
+individuals, so the results are the same as when each individual is duplicated {it:w} times.
+
 {marker requirements}{...}
 {title:Input requirements}
 
@@ -87,6 +99,14 @@ previous period and remain in the economy (i.e., {cmd:top} == 0 and lagged {cmd:
 This is because the decomposition requires tracking the growth of {varname} for all
 individuals initially in the top, whether or not they remain in the top.{p_end}
 
+{phang}4. With {cmd:fweight}s, the weight must be constant over time within each individual.
+Otherwise, the individuals who were in the top at {it:t}=0 would not have the same
+total weight at {it:t}=0 and {it:t}=1.{p_end}
+
+{pstd}
+The command requires Stata 16 or later. It works on a copy of the variables it uses, so the
+dataset in memory is left unchanged if it stops with an error.
+
 
 {marker options}{...}
 {title:Options}
@@ -97,6 +117,17 @@ individuals initially in the top, whether or not they remain in the top.{p_end}
 {synopt:{cmd:top(}{it:dummyvar}{cmd:)}}a variable equal to 1 if the individual
 is in the top percentile, 0 if below the top but in the economy, or missing
 if not in the economy.{p_end}
+
+{synopt:{cmd:top0(}{it:dummyvar}{cmd:)}}alternative to {cmd:top()}: the top at {it:t} when {it:t}
+is the start of the period from {it:t} to {it:t}+1 (same values as {cmd:top()}). Requires {cmd:top1()}.
+Its values in the last period are not used.{p_end}
+
+{synopt:{cmd:top1(}{it:dummyvar}{cmd:)}}alternative to {cmd:top()}: the top at {it:t} when {it:t}
+is the end of the period from {it:t}-1 to {it:t}. Requires {cmd:top0()}. Its values in the first
+period are not used. {cmd:top(}{it:x}{cmd:)} is the same as {cmd:top0(}{it:x}{cmd:)} {cmd:top1(}{it:x}{cmd:)}.{p_end}
+
+{synopt:{cmd:by(}{it:varlist}{cmd:)}}compute the decomposition separately within each group. An
+individual who moves from one group to another exits the first group and enters the second.{p_end}
 
 {synopt:{opth save(filename)}}save the output in an external dataset.{p_end}
 
@@ -122,6 +153,7 @@ The command produces a dataset with one row per transition period containing:
 
 {synoptset 25 tabbed}{...}
 {synoptline}
+{synopt:{it:byvars}}the {cmd:by()} variables, if specified{p_end}
 {synopt:{it:timevar}{cmd:0}, {it:timevar}{cmd:1}}start and end of the period{p_end}
 {synopt:{cmd:total}}total growth of average {varname} in the top percentile{p_end}
 {synopt:{cmd:within}}within component{p_end}
@@ -139,8 +171,8 @@ With the {cmd:detail} option, the output additionally includes:
 
 {synoptset 25 tabbed}{...}
 {synoptline}
-{synopt:{cmd:N_P0}, {cmd:N_P1}}number of observations in the top at {it:t}=0 and {it:t}=1{p_end}
-{synopt:{cmd:N_I}, {cmd:N_O}, {cmd:N_B}, {cmd:N_D}}number of observations in each group{p_end}
+{synopt:{cmd:N_P0}, {cmd:N_P1}}number of observations in the top at {it:t}=0 and {it:t}=1 (sum of weights with {cmd:fweight}s){p_end}
+{synopt:{cmd:N_I}, {cmd:N_O}, {cmd:N_B}, {cmd:N_D}}number of observations in each group (sum of weights with {cmd:fweight}s){p_end}
 {synopt:{cmd:w0_P0}}average {varname} in the top at {it:t}=0{p_end}
 {synopt:{cmd:w1_P1}}average {varname} in the top at {it:t}=1{p_end}
 {synopt:{cmd:w1_I}, {cmd:w1_O}, {cmd:w1_B}}average {varname} at {it:t}=1 for inflow, outflow, and birth groups{p_end}
@@ -169,6 +201,11 @@ With the {cmd:detail} option, the output additionally includes:
 
 {pstd}Run the decomposition with detailed output{p_end}
 {phang2}{cmd:. topdecompose wealth, top(top) clear detail}{p_end}
+
+{pstd}Exclude some individuals from the period that ends at {it:t} only{p_end}
+{phang2}{cmd:. gen top0 = top}{p_end}
+{phang2}{cmd:. gen top1 = top if runiform() > 0.05}{p_end}
+{phang2}{cmd:. topdecompose wealth, top0(top0) top1(top1) clear}{p_end}
 
 
 {marker references}{...}
